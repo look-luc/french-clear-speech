@@ -23,7 +23,7 @@ for i from 1 to numberOfFiles
 
     fileName$ = Get string: i
 
-    baseName$ = fileName$ - ".'file_type$'"
+    baseName$ = fileName$ - file_type$
 
 	select Strings list
         filename$ = Get string... 'i'
@@ -57,7 +57,9 @@ for i from 1 to numberOfFiles
 				selectObject: 'soundname$'
 				chunk$ = Extract part: start_time, end_time, "rectangular", 1, "no"
 				start$ = end$
-				Save as WAV file: chunk$, 'directory$'+'start_time'+'file_type$'
+				out_path$ = directory$ + baseName$ + "_" + string$(k) + ".wav"
+                selectObject: chunkObj
+                Save as WAV file: out_path$
 			endif
 		endfor
 	endif
