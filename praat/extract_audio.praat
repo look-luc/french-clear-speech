@@ -55,11 +55,11 @@ for i from 1 to numberOfFiles
 				end_time = Get start time of interval: silence_tier, end$
 
 				selectObject: 'soundname$'
-				Extract part: start_time, end_time, "rectangular", 1, "no"
+				chunk$ = Extract part: start_time, end_time, "rectangular", 1, "no"
 				start$ = end$
+				Save as WAV file: chunk$, 'directory$'+'start_time'+'file_type$'
 			endif
 		endfor
 	endif
-
     appendInfoLine: "Processing file: ", fileName$
 endfor
