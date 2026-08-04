@@ -46,7 +46,7 @@ for i from 1 to numberOfFiles
 			end$ = Get label of interval... silence_tier 'k'
 
 			if end$ == "sil" or end$ == "{sil}"
-			    if start$ <> "sil"or start$ <> "{sil}"
+			    if (start$ <> "sil"or start$ <> "{sil}") and start$ <> ""
 				    start_time = Get start time of interval: silence_tier, start$
 				else
 				    start_time = Get end time of interval: silence_tier, start$
