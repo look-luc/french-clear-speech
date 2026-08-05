@@ -5,7 +5,7 @@ from transformers import (
     WhisperProcessor,
 )
 
-from .data import Data
+from .data import get_dataloader
 
 
 def data_collate(batch, processor, feature_extractor):
@@ -34,7 +34,7 @@ class French_Speech_text:
 
         self.model_id = model_id
 
-        self.processor, self.feature_extractor, self.model = self._setup()
+        self.processor, self.feature_extractor, self.model, self.data = self._setup()
 
         self.level_tweak = level_tweak
 
@@ -43,6 +43,6 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        # data = Data.
+        data = get_dataloader(processor, feature_extractor, data_collate)
 
-        return processor, feature_extractor, model
+        return processor, feature_extractor, model, data

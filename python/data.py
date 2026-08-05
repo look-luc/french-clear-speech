@@ -1,9 +1,23 @@
 from pathlib import Path
+from typing import cast
 
 import torchaudio
 import torchaudio.transforms as T
+from datasets import Dataset
+from torch.utils.data import DataLoader
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+def get_dataloader(processor, feature_extractor, data_collate, batch_size: int = 4, shuffle: bool = True):
+        dataset = cast(Dataset, Data(processor=processor, feature_extractor=feature_extractor))
+
+        return DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=lambda batch: data_collate(batch, processor, feature_extractor),
+        )
+
 class Data:
     def __init__(
         self,
@@ -26,29 +40,23 @@ class Data:
     def __len__(self) -> int:
             return len(self.data_pairs)
 
-    def get_data(self):
-        input = []
-        labels = []
-        for i in range(len(self.data_pairs)):
-            wav_path, txt_path = self.data_pairs[i]
+    def __getitem__(self, idx: int) -> dict:
+        wav_path, txt_path = self.data_pairs[idx]
 
-            waveform, sample_rate = torchaudio.load(str(wav_path))
+        waveform, sample_rate = torchaudio.load(str(wav_path))
 
-            if sample_rate != 16000:
-                resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
-                waveform = resampler(waveform)
+        if sample_rate != 16000:
+            resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
+            waveform = resampler(waveform)
 
-            if waveform.shape[0] > 1:
-                waveform = waveform.mean(dim=0, keepdim=True)
-            waveform_1d = waveform.squeeze(0)
+        if waveform.shape[0] > 1:
+            waveform = waveform.mean(dim=0, keepdim=True)
+        waveform_1d = waveform.squeeze(0)
 
-            outputs = self.feature_extractor(waveform_1d, sampling_rate=16000, return_tensors="pt")
-            extracted_features = outputs.input_features[0]
+        outputs = self.feature_extractor(waveform_1d, sampling_rate=16000, return_tensors="pt")
+        extracted_features = outputs.input_features[0]
 
-            transcript = txt_path.read_text(encoding="utf-8").strip()
-            label_ids = self.processor.tokenizer(transcript).input_ids
+        transcript = txt_path.read_text(encoding="utf-8").strip()
+        label_ids = self.processor.tokenizer(transcript).input_ids
 
-            labels.append(label_ids)
-            input.append(extracted_features)
-
-        return {"input_features": input, "labels": labels}
+        return {"input_features": extracted_features, "labels": label_ids}
