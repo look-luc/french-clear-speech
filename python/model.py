@@ -8,23 +8,19 @@ from transformers import (
     WhisperProcessor,
 )
 
-root_dir = Path(__file__).resolve().parents[3]
-if str(root_dir) not in sys.path:
-    sys.path.append(str(root_dir))
-
 from .data import Data
 
 
 def data_collate(batch, processor, feature_extractor):
-    feature_list = [item["input_feature"] for item in batch]
-    label_list = [item["labels"] for item in batch]
+    feature_list = [{"input_features": item["input_features"]} for item in batch]
+    label_list = [{"input_ids": item["labels"]} for item in batch]
 
-    padding_inputs = feature_extractor.pad(feature_list, return_tensors='pt')
-    padded_labels = feature_extractor.pad(label_list, return_tensors='pt', padding_value=-100)
+    padded_inputs = feature_extractor.pad(feature_list, return_tensors="pt")
+    padded_labels = processor.tokenizer.pad(label_list, return_tensors="pt", padding_value=-100)
 
     return {
-        "input_features": padding_inputs.input_features,
-        "labels": padded_labels.input_ids
+        "input_features": padded_inputs.input_features,
+        "labels": padded_labels.input_ids,
     }
 
 class French_Speech_text:
@@ -32,12 +28,16 @@ class French_Speech_text:
         self,
         model_id:str="bofenghuang/whisper-medium-french",
         level_tweak:float=0.0,
-        device:str="cuda:0" if torch.cuda.is_available() else "mps:1" if  torch.backends.mps.is_available() else "cpu:2",
+        device:str=""
     ) -> None:
-        self.device = torch.device(device)
+        if device == "" or device is None:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if  torch.backends.mps.is_available() else "cpu")
+        else:
+            self.device = torch.device(device)
+
         self.model_id = model_id
 
-        self.feature_extractor, self.processor, self.model = self._setup()
+        self.processor, self.feature_extractor, self.model = self._setup()
 
         self.level_tweak = level_tweak
 

@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import numpy as np
-import torch
 import torchaudio
 import torchaudio.transforms as T
 
@@ -16,33 +14,35 @@ class Data:
     ) -> None:
         self.processor = processor
         self.feature_extractor = feature_extractor
-        self.audio_path = audio_path
-        self.txt_path = txt_path
+        self.audio_path = Path(audio_path)
+        self.txt_path = Path(txt_path)
 
-    def get_data(self):
-        wav_files = [p for p in Path(self.audio_path).iterdir() if p.is_file() and str(p)[-4:]==".wav"]
-        txt_files = [p for p in Path(self.audio_path).iterdir() if p.is_file() and str(p)[-4:]==".txt"]
+        self.data_pairs = []
+        for wav_file in sorted(self.audio_path.glob("*.wav")):
+            txt_file = self.txt_path / f"{wav_file.stem}.txt"
+            if txt_file.exists():
+                self.data_pairs.append((wav_file, txt_file))
 
-        labels = []
-        audio_files = []
-        for wav, txt in zip(wav_files, txt_files):
-            waveform, sample_rate = torchaudio.load(str(wav))
+    def __len__(self) -> int:
+            return len(self.data_pairs)
 
-            if sample_rate != 16000:
-                resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
-                waveform = resampler(waveform)
+    def get_data(self, idx:int):
+        wav_path, txt_path = self.data_pairs[idx]
 
-            transcript = np.loadtxt(txt, delimiter=" ")
-            transcript_tensor = torch.from_numpy(transcript)
+        waveform, sample_rate = torchaudio.load(str(wav_path))
 
-            waveform_1d = waveform.squeeze(0)
+        if sample_rate != 16000:
+            resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
+            waveform = resampler(waveform)
 
-            outputs = self.feature_extractor(waveform_1d, sampling_rate=16000, return_tensors="pt")
-            extracted_features = outputs.input_features[0]
+        if waveform.shape[0] > 1:
+            waveform = waveform.mean(dim=0, keepdim=True)
+        waveform_1d = waveform.squeeze(0)
 
-            label_ids = self.processor.tokenizer(transcript_tensor).input_ids
+        outputs = self.feature_extractor(waveform_1d, sampling_rate=16000, return_tensors="pt")
+        extracted_features = outputs.input_features[0]
 
-            audio_files.append(extracted_features)
-            labels.append(label_ids)
+        transcript = txt_path.read_text(encoding="utf-8").strip()
+        label_ids = self.processor.tokenizer(transcript).input_ids
 
-        return {"input_features": audio_files, "labels": labels}
+        return {"input_features": extracted_features, "labels": label_ids}
