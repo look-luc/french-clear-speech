@@ -26,7 +26,6 @@ for i from 1 to number_files
     filename$ = Get string: i
     Read from file: directory$ + filename$
     soundname$ = selected$ ("Sound")
-    filedur = Get total duration
 
     gridfile$ = directory$ + soundname$ + ".TextGrid"
 
@@ -35,7 +34,8 @@ for i from 1 to number_files
         selectObject: "TextGrid " + soundname$
         number_intervals = Get number of intervals: silence_tier
 
-        prev_time = 0.0
+        has_seen_first_sil = 0
+        prev_sil_end = 0.0
         utterance_index = 1
 
         for k from 1 to number_intervals
@@ -44,34 +44,27 @@ for i from 1 to number_files
 
             if label$ == "SIL" or label$ == "{sl}"
                 sil_start = Get start time of interval: silence_tier, k
-                sil_end = Get end time of interval: silence_tier, k
 
-                if sil_start > prev_time
+                if has_seen_first_sil and sil_start > prev_sil_end
                     selectObject: "Sound " + soundname$
-                    partial_sound = Extract part: prev_time, sil_start, "rectangular", 1.0, "no"
+                    partial_sound = Extract part: prev_sil_end, sil_start, "rectangular", 1.0, "no"
 
                     file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
                     Save as WAV file: output_dir$ + file_name$
+
                     removeObject: partial_sound
                     utterance_index = utterance_index + 1
                 endif
-                prev_time = sil_end
+
+                prev_sil_end = Get end time of interval: silence_tier, k
+                has_seen_first_sil = 1
             endif
         endfor
-
-        if prev_time < filedur
-            selectObject: soundname$ + file_type$
-            partial_sound = Extract part: prev_time, filedur, "rectangular", 1.0, "no"
-
-            file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
-            Save as WAV file: output_dir$ + file_name$
-            removeObject: partial_sound
-        endif
 
         removeObject: "TextGrid " + soundname$
     endif
 
-    removeObject: soundname$ + file_type$
+    removeObject: "Sound " + soundname$
     appendInfoLine: "Processing file: ", filename$
 endfor
 
