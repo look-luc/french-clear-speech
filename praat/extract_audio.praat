@@ -18,61 +18,60 @@ createDirectory: output_dir$
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
 directory$ = directory$ + "/"
 
-file_pattern$ = directory$ + "*" + file_type$
+Create Strings as file list... list 'directory$'*'file_type$'
 
-fileListObj = Create Strings as file list: "fileList", file_pattern$
-
-selectObject: fileListObj
-numberOfFiles = Get number of strings
+number_files = Get number of strings
 
 # gets the file name for later use
-for i from 1 to numberOfFiles
-    selectObject: fileListObj
-    fileName$ = Get string: i
+for i from 1 to number_files
+    select Strings list
+        filename$ = Get string... 'j'
+        Read from file... 'directory$''filename$'
+        soundname$ = selected$ ("Sound")
+	filedur = Get total duration
+	# identify associated TextGrid
+	gridfile$ = "'directory$''soundname$'.TextGrid"
 
-    baseName$ = fileName$ - file_type$
-
-    Read from file: directory$ + fileName$
-    soundname$ = selected$ ("Sound")
-
-    filedur = Get total duration
     # identify associated TextGrid
     gridfile$ = directory$ + soundname$ + ".TextGrid"
 
     if fileReadable (gridfile$)
-        Read from file: gridfile$
-        selectObject: "TextGrid " + soundname$
-        number_intervals = Get number of intervals: silence_tier
+        Read from file... 'gridfile$'
+		select TextGrid 'soundname$'
+		number_intervals = Get number of intervals... silence_tier
 
-        start_sil$ = ""
-        end_sil$ = ""
+        prev_time = 0.0
+        utterance_index = 1
         for k from 1 to number_intervals
             selectObject: "TextGrid " + soundname$
-            end_sil$ = Get label of interval: silence_tier, k
+            lanel$ = Get label of interval: silence_tier, k
 
-            if end_sil$ == "sil" or end_sil$ == "{sil}"
-                if k > 1
-                    start_time = Get end time of interval: silence_tier, k - 1
-                else
-                    start_time = 0
+            if label$ == "SIL" or label$ == "{sl}"
+                curr_Time = Get start point: silence_tier, k
+
+                if curr_time > prev_time
+                    select Sound 'soundname$'+ file_type$
+
+                    partial_sound = Extract part: prev_time, curr_time, "rectangular", 1.0, "no"
+
+                    file_name = "DATA_" + soundname$ + "_" + string$ (utterance_index) + ".wav"
+
+                    Save as WAV file: output_dir$ + file_name
+                    removeObject partial_sound
+                    utterance_index = utterance_index + 1
                 endif
-
-                end_time = Get start time of interval: silence_tier, k
-
-                if (end_time - start_time) > 0.005
-                    selectObject: "Sound " + soundname$
-                    chunkObj = Extract part: start_time, end_time, "rectangular", 1, "no"
-
-                    out_path$ = output_dir$ + baseName$ + "_" + string$(k) + ".wav"
-                    selectObject: chunkObj
-                    Save as WAV file: out_path$
-
-                    removeObject: chunkObj
-                endif
-
-                start_sil$ = end_sil$
+                prev_time = curr_Time
             endif
         endfor
+        if prev_time < filedur
+            select Sound soundname$ + file_type$
+            partial_sound = Extract part: prev_time, filedur, "rectangular", 1.0, "no"
+
+            file_name = "DATA_" + soundname$ + "_" + string$ (utterance_index) + ".wav"
+
+            Save as WAV file: output_dir$ + file_name
+            removeObject partial_sound
+        endif
         removeObject: "TextGrid " + soundname$
     endif
     removeObject: "Sound " + soundname$
