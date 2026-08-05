@@ -11,6 +11,8 @@ endform
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
 directory$ = directory$ + "/"
 
+output_dir$ = chooseDirectory$ ("Choose the directory where you want to save the files")
+
 file_pattern$ = directory$ + "*" + file_type$
 
 fileListObj = Create Strings as file list: "fileList", file_pattern$
@@ -27,6 +29,7 @@ for i from 1 to numberOfFiles
 
     Read from file: directory$ + fileName$
     soundname$ = selected$ ("Sound")
+    resultfile$ = directory$ + soundname$ + ".txt"
 
     filedur = Get total duration
     # identify associated TextGrid
@@ -54,10 +57,25 @@ for i from 1 to numberOfFiles
 
                 selectObject: "Sound " + soundname$
                 chunkObj = Extract part: start_time, end_time, "rectangular", 1, "no"
+
+                selectObject: "TextGrid " + soundname$
+                startIndex = Get interval at time: silence_tier, start_time
+                endIndex = Get interval at time: silence_tier, end_time
+
+                sweep$ = ""
+                for j from startIndex to endIndex
+                    selectObject: "TextGrid " + soundname$
+                    interval_label$ = Get label of interval: silence_tier, j
+                    sweep$ = sweep$ + interval_label$ + " "
+                endfor
+
+                fileappend "'resultfile$'" 'sweep$'
                 start_sil$ = end_sil$
-                out_path$ = directory$ + baseName$ + "_" + string$(k) + ".wav"
+
+                out_path$ = output_dir$ + baseName$ + "_" + string$(k) + ".wav"
                 selectObject: chunkObj
                 Save as WAV file: out_path$
+
                 removeObject: chunkObj
             endif
         endfor
