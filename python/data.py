@@ -1,43 +1,55 @@
 from pathlib import Path
-from typing import cast
 
 import torchaudio
 import torchaudio.transforms as T
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-def get_dataloader(processor, feature_extractor, data_collate, batch_size: int = 4, shuffle: bool = True):
-        dataset = Data(processor=processor, feature_extractor=feature_extractor)
+def get_train_test_dataloaders(
+    processor,
+    feature_extractor,
+    data_collate,
+    audio_dir=f"{BASE_DIR}/praat/data",
+    txt_dir=f"{BASE_DIR}/praat/data",
+    test_size=0.2
+):
+    audio_path, txt_path = Path(audio_dir), Path(txt_dir)
+    all_pairs = []
+    for wav_file in sorted(audio_path.glob("*.wav")):
+        txt_file = txt_path / f"{wav_file.stem}.txt"
+        if txt_file.exists():
+            all_pairs.append((wav_file, txt_file))
 
-        return DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            collate_fn=lambda batch: data_collate(batch, processor, feature_extractor),
-        )
+    train_pairs, test_pairs = train_test_split(all_pairs, test_size=test_size, random_state=42)
+
+    train_dataset = Data(processor, feature_extractor, train_pairs)
+    test_dataset = Data(processor, feature_extractor, test_pairs)
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=4,
+        shuffle=True,
+        collate_fn=lambda b: data_collate(b, processor, feature_extractor)
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=4,
+        shuffle=False,
+        collate_fn=lambda b: data_collate(b, processor, feature_extractor)
+    )
+
+    return train_loader, test_loader
 
 class Data(Dataset):
-    def __init__(
-        self,
-        processor,
-        feature_extractor,
-        audio_path:str=f"{BASE_DIR}/praat/data",
-        txt_path:str=f"{BASE_DIR}/praat/data",
-    ) -> None:
+    def __init__(self, processor, feature_extractor, data_pairs):
         self.processor = processor
         self.feature_extractor = feature_extractor
-        self.audio_path = Path(audio_path)
-        self.txt_path = Path(txt_path)
-
-        self.data_pairs = []
-        for wav_file in sorted(self.audio_path.glob("*.wav")):
-            txt_file = self.txt_path / f"{wav_file.stem}.txt"
-            if txt_file.exists():
-                self.data_pairs.append((wav_file, txt_file))
+        self.data_pairs = data_pairs
 
     def __len__(self) -> int:
-            return len(self.data_pairs)
+        return len(self.data_pairs)
 
     def __getitem__(self, idx: int) -> dict:
         wav_path, txt_path = self.data_pairs[idx]

@@ -1,11 +1,16 @@
+from typing import cast
+
 import torch
+from datasets import Dataset, IterableDataset
 from transformers import (
     AutoFeatureExtractor,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
 
-from .data import get_dataloader
+from .data import get_train_test_dataloaders
 
 
 def data_collate(batch, processor, feature_extractor):
@@ -34,7 +39,8 @@ class French_Speech_text:
 
         self.model_id = model_id
 
-        self.processor, self.feature_extractor, self.model, self.data = self._setup()
+        self.processor, self.feature_extractor, self.model, self.train_split, self.test_split = self._setup()
+        self.model
 
         self.level_tweak = level_tweak
 
@@ -43,6 +49,38 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        data = get_dataloader(processor, feature_extractor, data_collate)
+        train, test = get_train_test_dataloaders(processor, feature_extractor, data_collate)
 
-        return processor, feature_extractor, model, data
+        return processor, feature_extractor, model, train, test
+
+    def train(self):
+        training_args = Seq2SeqTrainingArguments(
+            output_dir="./results",
+            per_device_train_batch_size=1,
+            per_device_eval_batch_size=1,
+            dataloader_pin_memory=True,
+            dataloader_prefetch_factor=2,
+            gradient_checkpointing=True,
+            dataloader_num_workers=4,
+            dataloader_persistent_workers=True,
+            num_train_epochs=1,
+            learning_rate=2e-5,
+            max_steps=2500,
+            eval_strategy="steps",
+            eval_steps=500,
+            bf16=True,
+            remove_unused_columns=False,
+            max_grad_norm=1.0,
+            warmup_steps=125,
+            lr_scheduler_type="cosine",
+        )
+
+        trainer = Seq2SeqTrainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=cast(IterableDataset, self.train_split),
+            eval_dataset=self.test_split,
+            data_collator=data_collate(self.processor, self.feature_extractor),
+        )
+
+        return trainer.train()
