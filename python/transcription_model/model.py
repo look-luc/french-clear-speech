@@ -17,7 +17,7 @@ root_dir = Path(__file__).resolve().parents[3]
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
-from data.data import get_train_test_datasets
+from get_data.data import get_train_test_datasets
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
