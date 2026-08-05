@@ -3,14 +3,13 @@ from pathlib import Path
 import torchaudio
 import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-def get_train_test_dataloaders(
+def get_train_test_datasets(
     processor,
     feature_extractor,
-    data_collate,
     audio_dir=f"{BASE_DIR}/praat/data",
     txt_dir=f"{BASE_DIR}/praat/data",
     test_size=0.2
@@ -27,20 +26,7 @@ def get_train_test_dataloaders(
     train_dataset = Data(processor, feature_extractor, train_pairs)
     test_dataset = Data(processor, feature_extractor, test_pairs)
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=4,
-        shuffle=True,
-        collate_fn=lambda b: data_collate(b, processor, feature_extractor)
-    )
-    test_loader = DataLoader(
-        test_dataset,
-        batch_size=4,
-        shuffle=False,
-        collate_fn=lambda b: data_collate(b, processor, feature_extractor)
-    )
-
-    return train_loader, test_loader
+    return train_dataset, test_dataset
 
 class Data(Dataset):
     def __init__(self, processor, feature_extractor, data_pairs):

@@ -1,7 +1,4 @@
-from typing import cast
-
 import torch
-from datasets import Dataset, IterableDataset
 from transformers import (
     AutoFeatureExtractor,
     Seq2SeqTrainer,
@@ -10,7 +7,7 @@ from transformers import (
     WhisperProcessor,
 )
 
-from .data import get_train_test_dataloaders
+from .data import get_train_test_datasets
 
 
 def data_collate(batch, processor, feature_extractor):
@@ -49,9 +46,9 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        train, test = get_train_test_dataloaders(processor, feature_extractor, data_collate)
+        train_dataset, test_dataset = get_train_test_datasets(processor, feature_extractor)
 
-        return processor, feature_extractor, model, train, test
+        return processor, feature_extractor, model, train_dataset, test_dataset
 
     def train(self):
         training_args = Seq2SeqTrainingArguments(
@@ -78,9 +75,9 @@ class French_Speech_text:
         trainer = Seq2SeqTrainer(
             model=self.model,
             args=training_args,
-            train_dataset=cast(IterableDataset, self.train_split),
+            train_dataset=self.train_split,
             eval_dataset=self.test_split,
-            data_collator=data_collate(self.processor, self.feature_extractor),
+            data_collator=lambda batch: data_collate(batch, self.processor, self.feature_extractor),
         )
 
         return trainer.train()
