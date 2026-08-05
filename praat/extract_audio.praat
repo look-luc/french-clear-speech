@@ -44,6 +44,7 @@ for i from 1 to number_files
 
             if label$ == "SIL" or label$ == "{sl}"
                 sil_start = Get start time of interval: silence_tier, k
+                sil_start_int = Get label of interval: silence_tier, k
 
                 if has_seen_first_sil and sil_start > prev_sil_end
                     selectObject: "Sound " + soundname$
@@ -52,11 +53,17 @@ for i from 1 to number_files
                     file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
                     Save as WAV file: output_dir$ + file_name$
 
+                    resultfile$ = output_dir$+ "DATA_" + soundname$ + "_" + string$(utterance_index) +  ".txt"
+                    for j from prev_sil_int to sil_start_int
+                        appendFile: resultfile$,  j + " "
+                    endfor
+
                     removeObject: partial_sound
                     utterance_index = utterance_index + 1
                 endif
 
                 prev_sil_end = Get end time of interval: silence_tier, k
+                prev_sil_int = Get label of interval: silence_tier, k
                 has_seen_first_sil = 1
             endif
         endfor
