@@ -1,8 +1,6 @@
 form Extracting individual utterance
 	comment Specify which tier the main tier where SIL is located:
 		integer silence_tier 2
-	comment Specify which tier is the one with the transcription:
-	    integer transcription_tier 2
 	comment Sound file extension:
 		optionmenu file_type: 1
 		option .wav
@@ -11,85 +9,57 @@ form Extracting individual utterance
 endform
 
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
-directory$ = directory$ + "/"
+directory$ = "'directory$'" + "/"
 
-file_pattern$ = directory$ + "*" + file_type$
+file_pattern$ = directory$*file_type$
 
-fileListObj = Create Strings as file list: "fileList", file_pattern$
+Create Strings as file list: "fileList", file_pattern$
 
-selectObject: fileListObj
 numberOfFiles = Get number of strings
 
-# gets the file name for later use
+#gets the file name for later use
 for i from 1 to numberOfFiles
-    selectObject: fileListObj
+    selectObject: "Strings fileList"
+
     fileName$ = Get string: i
 
-    baseName$ = fileName$ - file_type$
+    baseName$ = fileName$ - ".'file_type$'"
 
-    Read from file: directory$ + fileName$
-    soundname$ = selected$ ("Sound")
-    resultfile$ = directory$ + "DATA_" + soundname$ + ".txt"
+	select Strings list
+        filename$ = Get string... 'i'
+        Read from file... 'directory$''filename$'
+        soundname$ = selected$ ("Sound")
 
-    filedur = Get total duration
-    # identify associated TextGrid
-    gridfile$ = directory$ + soundname$ + ".TextGrid"
+	filedur = Get total duration
+	# identify associated TextGrid
+	gridfile$ = "'directory$''soundname$'.TextGrid"
 
-    if fileReadable (gridfile$)
-        Read from file: gridfile$
-        selectObject: "TextGrid " + soundname$
-        number_intervals = Get number of intervals: silence_tier
+	if fileReadable (gridfile$)
+		Read from file... 'gridfile$'
+		select TextGrid 'soundname$'
+		number_intervals = Get number of intervals... silence_tier
 
-        start_sil$ = ""
-        end_sil$ = ""
-        for k from 1 to number_intervals
-            selectObject: "TextGrid " + soundname$
-            end_sil$ = Get label of interval: silence_tier, k
+		start$ = ""
+		end$ = ""
+		for k from 1 to number_intervals
+			select TextGrid 'soundname$'
+			end$ = Get label of interval... silence_tier 'k'
 
-            if end_sil$ == "sil" or end_sil$ == "{sil}"
-                if k > 1
-                    if start_sil$ <> "sil" or start_sil$ <> "{sil}"
-                        start_time = Get end time of interval: silence_tier, k - 1
-                    else
-                        start_time = Get end time of interval: silence_tier, k - 1
-                    endif
-                else
-                    start_time = 0
-                endif
+			if end$ == "sil" or end$ == "{sil}"
+			    if (start$ <> "sil"or start$ <> "{sil}")
+				    start_time = Get start time of interval: silence_tier, start$
+				else
+				    start_time = Get end time of interval: silence_tier, start$
+				endif
 
-                end_time = Get start time of interval: silence_tier, k
+				end_time = Get start time of interval: silence_tier, end$
 
-                if (end_time - start_time) > 0.005
-                    selectObject: "Sound " + soundname$
-                    chunkObj = Extract part: start_time, end_time, "rectangular", 1, "no"
-
-                    # Fetch interval boundaries with a 1ms offset to avoid exact line collisions
-                    selectObject: "TextGrid " + soundname$
-                    startIndex = Get interval at time: transcription_tier, start_time + 0.001
-                    endIndex = Get interval at time: transcription_tier, end_time - 0.001
-
-                    sweep$ = ""
-                    for j from startIndex to endIndex
-                        selectObject: "TextGrid " + soundname$
-                        interval_label$ = Get label of interval: transcription_tier, j
-                        sweep$ = sweep$ + interval_label$ + " "
-                    endfor
-
-                    appendFile: resultfile$, sweep$, newline$
-                    start_sil$ = end_sil$
-
-                    out_path$ = directory$ + "DATA_" + baseName$ + ".wav"
-                    selectObject: chunkObj
-                    Save as WAV file: out_path$
-
-                    removeObject: chunkObj
-                endif
-            endif
-        endfor
-        removeObject: "TextGrid " + soundname$
-    endif
-    removeObject: "Sound " + soundname$
+				selectObject: 'soundname$'
+				chunk$ = Extract part: start_time, end_time, "rectangular", 1, "no"
+				start$ = end$
+				Save as WAV file: chunk$, 'directory$'+'start_time'+'file_type$'
+			endif
+		endfor
+	endif
     appendInfoLine: "Processing file: ", fileName$
 endfor
-
-removeObject: fileListObj
