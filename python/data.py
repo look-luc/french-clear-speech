@@ -3,13 +3,12 @@ from typing import cast
 
 import torchaudio
 import torchaudio.transforms as T
-from datasets import Dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def get_dataloader(processor, feature_extractor, data_collate, batch_size: int = 4, shuffle: bool = True):
-        dataset = cast(Dataset, Data(processor=processor, feature_extractor=feature_extractor))
+        dataset = Data(processor=processor, feature_extractor=feature_extractor)
 
         return DataLoader(
             dataset,
@@ -18,7 +17,7 @@ def get_dataloader(processor, feature_extractor, data_collate, batch_size: int =
             collate_fn=lambda batch: data_collate(batch, processor, feature_extractor),
         )
 
-class Data:
+class Data(Dataset):
     def __init__(
         self,
         processor,
