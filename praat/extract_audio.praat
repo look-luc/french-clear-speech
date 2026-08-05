@@ -8,14 +8,17 @@ form Extracting individual utterance
 		option .wav
 		option .mp3
 		option .aiff
+	sentence Output_directory ./output/
 endform
+
+output_dir$ = output_directory$
+if right$ (output_dir$, 1) <> "/"
+    output_dir$ = output_dir$ + "/"
+endif
+createDirectory: output_dir$
 
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
 directory$ = directory$ + "/"
-
-# Subfolder path inside directory$
-output_dir$ = directory$ + "data_sounds/"
-createDirectory: output_dir$
 
 file_pattern$ = directory$ + "*" + file_type$
 
@@ -52,7 +55,7 @@ for i from 1 to numberOfFiles
 
             if end_sil$ == "sil" or end_sil$ == "{sil}"
                 if k > 1
-                    if start_sil$ <> "sil" and start_sil$ <> "{sil}" and start_sil$ <> ""
+                    if start_sil$ <> "sil" or start_sil$ <> "{sil}"
                         start_time = Get end time of interval: silence_tier, k - 1
                     else
                         start_time = Get end time of interval: silence_tier, k - 1
