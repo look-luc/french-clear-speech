@@ -36,6 +36,7 @@ for i from 1 to number_files
 
         has_seen_first_sil = 0
         prev_sil_end = 0.0
+        prev_sil_idx = 0
         utterance_index = 1
 
         for k from 1 to number_intervals
@@ -44,7 +45,6 @@ for i from 1 to number_files
 
             if label$ == "SIL" or label$ == "{sl}"
                 sil_start = Get start time of interval: silence_tier, k
-                sil_start_int = Get label of interval: silence_tier, k
 
                 if has_seen_first_sil and sil_start > prev_sil_end
                     selectObject: "Sound " + soundname$
@@ -53,9 +53,15 @@ for i from 1 to number_files
                     file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
                     Save as WAV file: output_dir$ + file_name$
 
-                    resultfile$ = output_dir$+ "DATA_" + soundname$ + "_" + string$(utterance_index) +  ".txt"
-                    for j from prev_sil_int to sil_start_int
-                        appendFile: resultfile$,  j + " "
+                    resultfile$ = output_dir$ + "DATA_" + soundname$ + "_" + string$(utterance_index) + ".txt"
+
+                    # Loop through interval indices between the previous SIL and current SIL
+                    selectObject: "TextGrid " + soundname$
+                    for j from prev_sil_idx + 1 to k - 1
+                        inner_label$ = Get label of interval: silence_tier, j
+                        if inner_label$ != ""
+                            appendFile: resultfile$, inner_label$ + " "
+                        endif
                     endfor
 
                     removeObject: partial_sound
@@ -63,7 +69,7 @@ for i from 1 to number_files
                 endif
 
                 prev_sil_end = Get end time of interval: silence_tier, k
-                prev_sil_int = Get label of interval: silence_tier, k
+                prev_sil_idx = k
                 has_seen_first_sil = 1
             endif
         endfor
