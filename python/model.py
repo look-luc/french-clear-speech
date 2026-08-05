@@ -1,4 +1,8 @@
+import evaluate
+import numpy as np
 import torch
+from torchmetrics.functional.text import bleu_score
+from torchmetrics.text import EditDistance
 from transformers import (
     AutoFeatureExtractor,
     Seq2SeqTrainer,
@@ -9,6 +13,9 @@ from transformers import (
 
 from .data import get_train_test_datasets
 
+cer_metric = evaluate.load("cer")
+wer_metric = evaluate.load("wer")
+f1_metric = EditDistance()
 
 def data_collate(batch, processor, feature_extractor):
     feature_list = [{"input_features": item["input_features"]} for item in batch]
@@ -50,6 +57,59 @@ class French_Speech_text:
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
+    def _compute_metrics(self, eval_pred):
+        pred_ids = eval_pred.predictions
+        label_ids = eval_pred.label_ids
+
+        if isinstance(pred_ids, tuple):
+            pred_ids = pred_ids[0]
+
+        if pred_ids.ndim == 3:
+            pred_ids = np.argmax(pred_ids, axis=-1)
+
+        pad_id = (
+            self.processor.tokenizer.pad_token_id
+            if self.processor.tokenizer.pad_token_id is not None
+            else self.processor.tokenizer.eos_token_id
+        )
+
+        clean_label_ids = np.where(label_ids != -100, label_ids, pad_id)
+        clean_pred_ids = np.where(label_ids != -100, pred_ids, pad_id)
+
+        decoded_preds = self.processor.tokenizer.batch_decode(
+            clean_pred_ids, skip_special_tokens=True
+        )
+        decoded_labels = self.processor.tokenizer.batch_decode(
+            clean_label_ids, skip_special_tokens=True
+        )
+
+        decoded_preds = [
+            pred.strip() if pred.strip() else " " for pred in decoded_preds
+        ]
+        decoded_labels = [
+            label.strip() if label.strip() else " " for label in decoded_labels
+        ]
+
+        cer_score = cer_metric.compute(
+            predictions=decoded_preds, references=decoded_labels
+        )
+        wer_score = wer_metric.compute(
+            predictions=decoded_preds, references=decoded_labels
+        )
+
+        bleu_targets = [[label] for label in decoded_labels]
+
+        f1_metric.update(decoded_preds, decoded_labels)
+        f1_score = f1_metric.compute()
+        f1_metric.reset()
+
+        try:
+            bleu_score_val = bleu_score(decoded_preds, bleu_targets).item()
+        except Exception:
+            bleu_score_val = 0.0
+
+        return {"F1": f1_score, "CER": cer_score, "WER": wer_score, "BLEU": bleu_score_val}
+
     def train(self):
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
@@ -78,6 +138,7 @@ class French_Speech_text:
             train_dataset=self.train_split,
             eval_dataset=self.test_split,
             data_collator=lambda batch: data_collate(batch, self.processor, self.feature_extractor),
+            compute_metrics=self._compute_metrics,
         )
 
         return trainer.train()
