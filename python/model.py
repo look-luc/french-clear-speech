@@ -1,7 +1,6 @@
 import evaluate
 import numpy as np
 import torch
-from torchmetrics.functional.text import bleu_score
 from torchmetrics.text import EditDistance
 from transformers import (
     AutoFeatureExtractor,
@@ -97,18 +96,11 @@ class French_Speech_text:
             predictions=decoded_preds, references=decoded_labels
         )
 
-        bleu_targets = [[label] for label in decoded_labels]
-
         f1_metric.update(decoded_preds, decoded_labels)
         f1_score = f1_metric.compute()
         f1_metric.reset()
 
-        try:
-            bleu_score_val = bleu_score(decoded_preds, bleu_targets).item()
-        except Exception:
-            bleu_score_val = 0.0
-
-        return {"F1": f1_score, "CER": cer_score, "WER": wer_score, "BLEU": bleu_score_val}
+        return {"F1": f1_score, "CER": cer_score, "WER": wer_score}
 
     def train(self):
         training_args = Seq2SeqTrainingArguments(
