@@ -1,5 +1,5 @@
 form Extracting individual utterance
-	comment Specify which tier the main tier where SIL is located:
+	comment Specify the tier where SIL is located:
 		integer silence_tier 2
 	comment Sound file extension:
 		optionmenu file_type: 1
@@ -18,25 +18,15 @@ createDirectory: output_dir$
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
 directory$ = directory$ + "/"
 
-file_pattern$ = directory$ + "*" + file_type$
+fileListObj = Create Strings as file list: "list", directory$ + "*" + file_type$
+number_files = Get number of strings
 
-fileListObj = Create Strings as file list: "fileList", file_pattern$
-
-selectObject: fileListObj
-numberOfFiles = Get number of strings
-
-# gets the file name for later use
-for i from 1 to numberOfFiles
+for i from 1 to number_files
     selectObject: fileListObj
-    fileName$ = Get string: i
-
-    baseName$ = fileName$ - file_type$
-
-    Read from file: directory$ + fileName$
+    filename$ = Get string: i
+    Read from file: directory$ + filename$
     soundname$ = selected$ ("Sound")
 
-    filedur = Get total duration
-    # identify associated TextGrid
     gridfile$ = directory$ + soundname$ + ".TextGrid"
 
     if fileReadable (gridfile$)
@@ -44,39 +34,51 @@ for i from 1 to numberOfFiles
         selectObject: "TextGrid " + soundname$
         number_intervals = Get number of intervals: silence_tier
 
-        start_sil$ = ""
-        end_sil$ = ""
+        has_seen_first_sil = 0
+        prev_sil_end = 0.0
+        prev_sil_idx = 0
+        utterance_index = 1
+
         for k from 1 to number_intervals
             selectObject: "TextGrid " + soundname$
-            end_sil$ = Get label of interval: silence_tier, k
+            label$ = Get label of interval: silence_tier, k
 
-            if end_sil$ == "sil" or end_sil$ == "{sil}"
-                if k > 1
-                    start_time = Get end time of interval: silence_tier, k - 1
-                else
-                    start_time = 0
-                endif
+            if label$ == "SIL" or label$ == "{sl}"
+                sil_start = Get start time of interval: silence_tier, k
 
-                end_time = Get start time of interval: silence_tier, k
-
-                if (end_time - start_time) > 0.005
+                if has_seen_first_sil and sil_start > prev_sil_end
                     selectObject: "Sound " + soundname$
-                    chunkObj = Extract part: start_time, end_time, "rectangular", 1, "no"
+                    partial_sound = Extract part: prev_sil_end, sil_start, "rectangular", 1.0, "no"
 
-                    out_path$ = output_dir$ + baseName$ + "_" + string$(k) + ".wav"
-                    selectObject: chunkObj
-                    Save as WAV file: out_path$
+                    file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
+                    Save as WAV file: output_dir$ + file_name$
 
-                    removeObject: chunkObj
+                    resultfile$ = output_dir$ + "DATA_" + soundname$ + "_" + string$(utterance_index) + ".txt"
+
+                    # Loop through interval indices between the previous SIL and current SIL
+                    selectObject: "TextGrid " + soundname$
+                    for j from prev_sil_idx + 1 to k - 1
+                        inner_label$ = Get label of interval: silence_tier, j
+                        if inner_label$ != ""
+                            appendFile: resultfile$, inner_label$ + " "
+                        endif
+                    endfor
+
+                    removeObject: partial_sound
+                    utterance_index = utterance_index + 1
                 endif
 
-                start_sil$ = end_sil$
+                prev_sil_end = Get end time of interval: silence_tier, k
+                prev_sil_idx = k
+                has_seen_first_sil = 1
             endif
         endfor
+
         removeObject: "TextGrid " + soundname$
     endif
+
     removeObject: "Sound " + soundname$
-    appendInfoLine: "Processing file: ", fileName$
+    appendInfoLine: "Processing file: ", filename$
 endfor
 
 removeObject: fileListObj
