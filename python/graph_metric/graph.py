@@ -10,7 +10,6 @@ def _build_df(json_path: Path):
     train_loss = {}
     grad_norm = {}
     eval_loss = {}
-    eval_bleu = {}
     eval_cer = {}
     eval_wer = {}
 
@@ -35,14 +34,12 @@ def _build_df(json_path: Path):
             grad_norm[step] = element["grad_norm"]
         if "eval_loss" in element:
             eval_loss[step] = element["eval_loss"]
-        if "eval_BLEU" in element:
-            eval_bleu[step] = element["eval_BLEU"]
         if "eval_CER" in element:
             eval_cer[step] = element["eval_CER"]
         if "eval_WER" in element:
             eval_wer[step] = element["eval_WER"]
 
-    return train_loss, grad_norm, eval_loss, eval_bleu, eval_cer, eval_wer
+    return train_loss, grad_norm, eval_loss, eval_cer, eval_wer
 
 def _make_graph(metric: dict[str, float], metric_name: str, color: str, output_dir: Path):
     if not metric:

@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 import evaluate
 import numpy as np
 import torch
@@ -10,7 +13,11 @@ from transformers import (
     WhisperProcessor,
 )
 
-from .data import get_train_test_datasets
+root_dir = Path(__file__).resolve().parents[3]
+if str(root_dir) not in sys.path:
+    sys.path.append(str(root_dir))
+
+from data.data import get_train_test_datasets
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
@@ -102,7 +109,7 @@ class French_Speech_text:
 
         return {"F1": f1_score, "CER": cer_score, "WER": wer_score}
 
-    def train(self):
+    def train(self, output_dir: str = "./whisper-french-final"):
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
             per_device_train_batch_size=1,
@@ -133,4 +140,9 @@ class French_Speech_text:
             compute_metrics=self._compute_metrics,
         )
 
-        return trainer.train()
+        train_result = trainer.train()
+        trainer.save_model(output_dir)
+        self.processor.save_pretrained(output_dir)
+        self.feature_extractor.save_pretrained(output_dir)
+
+        return train_result
