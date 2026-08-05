@@ -146,3 +146,23 @@ class French_Speech_text:
         self.feature_extractor.save_pretrained(output_dir)
 
         return train_result
+
+    def transcribe(self):
+        # model.generate(
+        #     input_features,
+        #     language="fr",
+        #     task="transcribe",
+
+        #     # 1. Simulate "Mishearing" via High Temperature
+        #     do_sample=True,
+        #     temperature=0.8,         # Forces the model to guess phonetically similar but wrong words
+
+        #     # 2. Simulate "Missing Context" by limiting vision
+        #     num_beams=1,             # No look-ahead context; forces rigid word-by-word guessing
+
+        #     # 3. Simulate "Giving Up" early on weak signals
+        #     logprob_threshold=-0.4,  # If a word isn't crystal clear, Whisper stops or drops it
+
+        #     # 4. Prevent repetitive guessing
+        #     no_repeat_ngram_size=3   # Stops the model from looping if it gets confused by a sound
+        # )
