@@ -1,6 +1,3 @@
-import sys
-from pathlib import Path
-
 import torch
 from transformers import (
     AutoFeatureExtractor,
@@ -45,5 +42,7 @@ class French_Speech_text:
         processor = WhisperProcessor.from_pretrained(self.model_id)
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
+
+        # data = Data.
 
         return processor, feature_extractor, model
