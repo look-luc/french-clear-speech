@@ -60,7 +60,7 @@ for i from 1 to number_files
         endfor
 
         if prev_time < filedur
-            selectObject: soundname$ + file_type
+            selectObject: soundname$ + file_type$
             partial_sound = Extract part: prev_time, filedur, "rectangular", 1.0, "no"
 
             file_name$ = "DATA_" + soundname$ + "_" + string$(utterance_index) + ".wav"
@@ -71,7 +71,7 @@ for i from 1 to number_files
         removeObject: "TextGrid " + soundname$
     endif
 
-    removeObject: soundname$ + file_type
+    removeObject: soundname$ + file_type$
     appendInfoLine: "Processing file: ", filename$
 endfor
 
