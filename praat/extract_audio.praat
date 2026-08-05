@@ -8,14 +8,7 @@ form Extracting individual utterance
 		option .wav
 		option .mp3
 		option .aiff
-	sentence Output_directory ./output/
 endform
-
-output_dir$ = output_directory$
-if right$ (output_dir$, 1) <> "/"
-    output_dir$ = output_dir$ + "/"
-endif
-createDirectory: output_dir$
 
 directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
 directory$ = directory$ + "/"
@@ -36,7 +29,7 @@ for i from 1 to numberOfFiles
 
     Read from file: directory$ + fileName$
     soundname$ = selected$ ("Sound")
-    resultfile$ = output_dir$ + soundname$ + ".txt"
+    resultfile$ = directory$ + "DATA_" + soundname$ + ".txt"
 
     filedur = Get total duration
     # identify associated TextGrid
@@ -65,7 +58,8 @@ for i from 1 to numberOfFiles
                 endif
 
                 end_time = Get start time of interval: silence_tier, k
-                if end_time > start_time
+
+                if (end_time - start_time) > 0.005
                     selectObject: "Sound " + soundname$
                     chunkObj = Extract part: start_time, end_time, "rectangular", 1, "no"
 
@@ -84,7 +78,7 @@ for i from 1 to numberOfFiles
                     appendFile: resultfile$, sweep$, newline$
                     start_sil$ = end_sil$
 
-                    out_path$ = output_dir$ + baseName$ + "_" + string$(k) + ".wav"
+                    out_path$ = directory$ + "DATA_" + baseName$ + ".wav"
                     selectObject: chunkObj
                     Save as WAV file: out_path$
 
