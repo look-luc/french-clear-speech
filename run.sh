@@ -12,11 +12,13 @@
 #SBATCH --qos=gpu-testing
 #SBATCH --mail-type=END,FAIL
 
+export SCRATCH="${SCRATCH:-/scratch/alpine/$USER}"
+
 export HF_HOME="$SCRATCH/.cache/huggingface"
 export EVALUATE_CACHE_DIR="$SCRATCH/.cache/evaluate"
 export TRANSFORMERS_CACHE="$SCRATCH/.cache/transformers"
 
-mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE" "$TMPDIR" "$CUDA_CACHE_PATH"
+mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE"
 
 module purge
 module load cuda

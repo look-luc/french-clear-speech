@@ -5,7 +5,7 @@ import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 def get_train_test_datasets(
     processor,
@@ -20,6 +20,12 @@ def get_train_test_datasets(
         txt_file = txt_path / f"{wav_file.stem}.txt"
         if txt_file.exists():
             all_pairs.append((wav_file, txt_file))
+
+    if not all_pairs:
+        raise FileNotFoundError(
+            f"No matching .wav and .txt file pairs were found in '{audio_path}'. "
+            f"Verify that audio and transcript files exist in the target directory."
+        )
 
     train_pairs, test_pairs = train_test_split(all_pairs, test_size=test_size, random_state=42)
 

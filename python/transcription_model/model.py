@@ -59,7 +59,14 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        train_dataset, test_dataset = get_train_test_datasets(processor, feature_extractor)
+        # Explicitly pass project root data directories
+        praat_data_dir = root_dir / "praat" / "data"
+        train_dataset, test_dataset = get_train_test_datasets(
+            processor,
+            feature_extractor,
+            audio_dir=praat_data_dir,
+            txt_dir=praat_data_dir
+        )
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
