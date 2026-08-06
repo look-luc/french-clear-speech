@@ -6,9 +6,9 @@
 #SBATCH --time=2:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
-#SBATCH --partition=blanca-clearlab2
-#SBATCH --account=blanca-clearlab2
-#SBATCH --qos=blanca-clearlab2
+#SBATCH --partition=aa100
+#SBATCH --account=ucb-general
+#SBATCH --qos=normal
 #SBATCH --mail-type=END,FAIL
 
 export HF_HOME="$SCRATCH_DIR/.cache/huggingface"
