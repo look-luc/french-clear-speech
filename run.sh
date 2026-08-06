@@ -1,14 +1,15 @@
 #!/bin/bash
-#SBATCH --gres=gpu:1
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=2:00:00
+#SBATCH --time=1:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
 #SBATCH --partition=aa100
 #SBATCH --account=ucb-general
-#SBATCH --qos=normal
+#SBATCH --qos=gpu-testing
 #SBATCH --mail-type=END,FAIL
 
 export HF_HOME="$SCRATCH_DIR/.cache/huggingface"
@@ -23,4 +24,6 @@ module load anaconda
 conda activate french_clear_speech
 
 cd /projects/$USER/french-clear-speech
-python -u run.py
+
+MODEL_TYPE=${1:-train}
+python -u run.py -o "$MODEL_TYPE"
