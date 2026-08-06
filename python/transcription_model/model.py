@@ -12,7 +12,7 @@ from transformers import (
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
-]
+
 python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
 
@@ -40,19 +40,19 @@ def data_collate(batch, processor, feature_extractor):
 class French_Speech_text:
     def __init__(
         self,
-        model_id:str="bofenghuang/whisper-medium-french",
-        level_tweak:float=0.0,
-        device:str=""
+        model_id: str = "bofenghuang/whisper-medium-french",
+        level_tweak: float = 0.0,
+        device: str = ""
     ) -> None:
         if device == "" or device is None:
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+            self.device = torch.device(
+                "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+            )
         else:
             self.device = torch.device(device)
 
         self.model_id = model_id
-
         self.processor, self.feature_extractor, self.model, self.train_split, self.test_split = self._setup()
-
         self.level_tweak = level_tweak
 
     def _setup(self):
@@ -96,19 +96,11 @@ class French_Speech_text:
             clean_label_ids, skip_special_tokens=True
         )
 
-        decoded_preds = [
-            pred.strip() if pred.strip() else " " for pred in decoded_preds
-        ]
-        decoded_labels = [
-            label.strip() if label.strip() else " " for label in decoded_labels
-        ]
+        decoded_preds = [pred.strip() if pred.strip() else " " for pred in decoded_preds]
+        decoded_labels = [label.strip() if label.strip() else " " for label in decoded_labels]
 
-        cer_score = cer_metric.compute(
-            predictions=decoded_preds, references=decoded_labels
-        )
-        wer_score = wer_metric.compute(
-            predictions=decoded_preds, references=decoded_labels
-        )
+        cer_score = cer_metric.compute(predictions=decoded_preds, references=decoded_labels)
+        wer_score = wer_metric.compute(predictions=decoded_preds, references=decoded_labels)
 
         f1_metric.update(decoded_preds, decoded_labels)
         f1_score = f1_metric.compute()
@@ -117,25 +109,30 @@ class French_Speech_text:
         return {"F1": f1_score, "CER": cer_score, "WER": wer_score}
 
     def train(self, output_dir: str = "./whisper-french-final"):
+        is_cuda = torch.cuda.is_available()
+        use_bf16 = is_cuda and torch.cuda.is_bf16_supported()
+
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
             per_device_train_batch_size=1,
             per_device_eval_batch_size=1,
-            dataloader_pin_memory=True,
-            dataloader_prefetch_factor=2,
+            dataloader_pin_memory=is_cuda,
+            dataloader_prefetch_factor=2 if is_cuda else None,
             gradient_checkpointing=True,
-            dataloader_num_workers=4,
-            dataloader_persistent_workers=True,
+            dataloader_num_workers=4 if is_cuda else 0,
+            dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
             learning_rate=2e-5,
             max_steps=2500,
             eval_strategy="steps",
             eval_steps=500,
-            bf16=True,
             remove_unused_columns=False,
             max_grad_norm=1.0,
             warmup_steps=125,
             lr_scheduler_type="cosine",
+            bf16=use_bf16,
+            fp16=(is_cuda and not use_bf16),
+            use_cpu=not is_cuda,
         )
 
         trainer = Seq2SeqTrainer(
