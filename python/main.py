@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from graph_metric.graph import metrics_graph
 from transcription_model.model import French_Speech_text
+
+from .graph_metric.graph import metrics_graph
 
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")

@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 #SBATCH --time=1:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
