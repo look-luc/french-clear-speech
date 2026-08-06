@@ -12,14 +12,14 @@
 #SBATCH --qos=gpu-testing
 #SBATCH --mail-type=END,FAIL
 
-export HF_HOME="$SCRATCH_DIR/.cache/huggingface"
-export EVALUATE_CACHE_DIR="$SCRATCH_DIR/.cache/evaluate"
-export TRANSFORMERS_CACHE="$SCRATCH_DIR/.cache/transformers"
+export HF_HOME="$SCRATCH/.cache/huggingface"
+export EVALUATE_CACHE_DIR="$SCRATCH/.cache/evaluate"
+export TRANSFORMERS_CACHE="$SCRATCH/.cache/transformers"
 
 mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE" "$TMPDIR" "$CUDA_CACHE_PATH"
 
 module purge
-module  load cuda
+module load cuda
 module load anaconda
 conda activate french_clear_speech
 

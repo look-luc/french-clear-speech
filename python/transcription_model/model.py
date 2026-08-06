@@ -13,7 +13,7 @@ from transformers import (
     WhisperProcessor,
 )
 
-root_dir = Path(__file__).resolve().parents[3]
+root_dir = Path(__file__).resolve().parents[1]
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
@@ -43,7 +43,7 @@ class French_Speech_text:
         device:str=""
     ) -> None:
         if device == "" or device is None:
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if  torch.backends.mps.is_available() else "cpu")
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         else:
             self.device = torch.device(device)
 
