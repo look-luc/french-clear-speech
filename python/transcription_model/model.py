@@ -12,12 +12,14 @@ from transformers import (
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
+]
+python_dir = Path(__file__).resolve().parents[1]
+root_dir = Path(__file__).resolve().parents[2]
 
-root_dir = Path(__file__).resolve().parents[1]
-if str(root_dir) not in sys.path:
-    sys.path.append(str(root_dir))
+if str(python_dir) not in sys.path:
+    sys.path.append(str(python_dir))
 
-from get_data.data import get_train_test_datasets
+from python.get_data.data import get_train_test_datasets
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
@@ -50,7 +52,6 @@ class French_Speech_text:
         self.model_id = model_id
 
         self.processor, self.feature_extractor, self.model, self.train_split, self.test_split = self._setup()
-        self.model
 
         self.level_tweak = level_tweak
 
@@ -59,7 +60,6 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        # Explicitly pass project root data directories
         praat_data_dir = root_dir / "praat" / "data"
         train_dataset, test_dataset = get_train_test_datasets(
             processor,
