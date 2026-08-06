@@ -166,3 +166,4 @@ class French_Speech_text:
         #     # 4. Prevent repetitive guessing
         #     no_repeat_ngram_size=3   # Stops the model from looping if it gets confused by a sound
         # )
+        pass
