@@ -10,8 +10,8 @@ load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
 
 def run_model(what_model:str):
-    french_speech_transcription = French_Speech_text()
     if what_model == "train":
+        french_speech_transcription = French_Speech_text()
         try:
             french_speech_transcription.train()
             save_status = f"Successfully trained model setup: {french_speech_transcription.model_id}"
