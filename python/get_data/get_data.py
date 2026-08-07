@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import cast
 
+import soundfile as sf
 from datasets import Audio, load_dataset
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HfHubHTTPError
@@ -36,21 +37,17 @@ def get_data(
     ds_train = ds_train.filter(lambda x: Path(x["audio"]).exists())
     ds_test = ds_test.filter(lambda x: Path(x["audio"]).exists())
 
-    ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000))
-    ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000))
-
-    def is_audio_valid(example):
-        try:
-            return example["audio"] is not None and example["audio"]["array"] is not None
-        except (KeyError, TypeError, AttributeError):
-            return False
-
-    ds_train = ds_train.filter(is_audio_valid)
-    ds_test = ds_test.filter(is_audio_valid)
+    # Disable automatic decoding to avoid torchcodec dependency
+    ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
+    ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
 
     def prepare_dataset(batch):
-        # Extract raw audio arrays from AudioDecoder objects
-        audio_arrays = [item["array"] for item in batch["audio"]]
+        # Load audio directly using soundfile
+        audio_arrays = []
+        for path in batch["audio"]:
+            audio_path = path["path"] if isinstance(path, dict) else path
+            array, _ = sf.read(audio_path)
+            audio_arrays.append(array)
 
         input_features = feature_extractor(
             audio_arrays,
