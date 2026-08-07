@@ -12,6 +12,12 @@
 #SBATCH --qos=gpu-testing
 #SBATCH --mail-type=END,FAIL
 
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export TOKENIZERS_PARALLELISM=false
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
 export SCRATCH="${SCRATCH:-/scratch/alpine/$USER}"
 
 export HF_HOME="$SCRATCH/.cache/huggingface"
