@@ -25,12 +25,12 @@ def get_data(
         batch["labels"] = processor.tokenizer(batch["text"]).input_ids
         return batch
 
-    processed_dataset_train = raw_dataset.map(
+    processed_dataset_train = ds_train.map(
         prepare_dataset,
         remove_columns=ds_train.column_names,
         num_proc=4
     )
-    processed_dataset_test = raw_dataset.map(
+    processed_dataset_test = ds_test.map(
         prepare_dataset,
         remove_columns=ds_test.column_names,
         num_proc=4
