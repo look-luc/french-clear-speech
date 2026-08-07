@@ -121,7 +121,7 @@ class French_Speech_text:
             dataloader_pin_memory=is_cuda,
             dataloader_prefetch_factor=2 if is_cuda else None,
             gradient_checkpointing=True,
-            dataloader_num_workers=4 if is_cuda else 0,
+            dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
             learning_rate=2e-5,
