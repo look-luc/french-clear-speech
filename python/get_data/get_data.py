@@ -1,9 +1,13 @@
 import os
+import re
 from pathlib import Path
 from typing import cast
 
 import soundfile as sf
-from datasets import Audio, load_dataset
+from datasets import (
+    Audio,
+    load_dataset,
+)
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HfHubHTTPError
 
@@ -42,7 +46,6 @@ def get_data(
     ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
 
     def prepare_dataset(batch):
-        # Load audio directly using soundfile
         audio_arrays = []
         for path in batch["audio"]:
             audio_path = path["path"] if isinstance(path, dict) else path
@@ -54,7 +57,14 @@ def get_data(
             sampling_rate=16000
         ).input_features
 
-        labels = processor.tokenizer(batch["text"]).input_ids
+        cleaned_texts = []
+        pattern = r"\bl'\s+"
+        for text in batch["text"]:
+            text = text.replace("sp ", "").replace(" sp", "").replace("{ns}", "")
+            text = re.sub(pattern, "l'", text, flags=re.IGNORECASE)
+            cleaned_texts.append(text)
+
+        labels = processor.tokenizer(cleaned_texts).input_ids
 
         return {
             "input_features": input_features,
