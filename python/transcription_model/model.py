@@ -30,7 +30,7 @@ def data_collate(batch, processor, feature_extractor):
     label_list = [{"input_ids": item["labels"]} for item in batch]
 
     padded_inputs = feature_extractor.pad(feature_list, return_tensors="pt")
-    padded_labels = processor.tokenizer.pad(label_list, return_tensors="pt", padding_value=-100)
+    padded_labels = processor.tokenizer.pad(label_list, return_tensors="pt", padding_side=-100)
 
     return {
         "input_features": padded_inputs.input_features,
