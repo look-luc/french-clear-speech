@@ -19,7 +19,7 @@ root_dir = Path(__file__).resolve().parents[2]
 if str(python_dir) not in sys.path:
     sys.path.append(str(python_dir))
 
-from python.get_data.data import get_train_test_datasets
+from python.get_data.get_data import get_data
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
@@ -65,11 +65,9 @@ class French_Speech_text:
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
         praat_data_dir = root_dir / "praat" / "data"
-        train_dataset, test_dataset = get_train_test_datasets(
+        train_dataset, test_dataset = get_data(
             processor,
-            feature_extractor,
-            audio_dir=praat_data_dir,
-            txt_dir=praat_data_dir
+            feature_extractor
         )
 
         return processor, feature_extractor, model, train_dataset, test_dataset
