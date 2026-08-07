@@ -14,13 +14,12 @@ def get_data(
 ):
     local_praat_dir = Path(__file__).resolve().parents[2] / "praat" / "data"
 
-    # Attempt throttled snapshot download; fall back to local disk or cache on 429
     try:
         repo_dir = Path(
             snapshot_download(
                 repo_id,
                 repo_type="dataset",
-                max_workers=2,  # Prevents triggering 429 Too Many Requests
+                max_workers=2,
                 token=os.getenv("HF_TOKEN")
             )
         )
@@ -34,15 +33,20 @@ def get_data(
     ds_train = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
     ds_test = ds_test.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
 
+    ds_train = ds_train.filter(lambda x: Path(x["audio"]).exists())
+    ds_test = ds_test.filter(lambda x: Path(x["audio"]).exists())
+
     ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000))
     ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000))
 
-    ds_train = ds_train.filter(
-        lambda example: example["audio"] is not None and example["audio"].get("array") is not None
-    )
-    ds_test = ds_test.filter(
-        lambda example: example["audio"] is not None and example["audio"].get("array") is not None
-    )
+    def is_audio_valid(example):
+        try:
+            return example["audio"] is not None and example["audio"]["array"] is not None
+        except (KeyError, TypeError, AttributeError):
+            return False
+
+    ds_train = ds_train.filter(is_audio_valid)
+    ds_test = ds_test.filter(is_audio_valid)
 
     def prepare_dataset(batch):
         audio = batch["audio"]
