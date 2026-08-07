@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 def _build_df(json_path: Path):
     train_loss = {}
     grad_norm = {}
