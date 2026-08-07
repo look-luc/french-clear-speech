@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 import soundfile as sf
 import torch
 import torchaudio.transforms as T
@@ -7,6 +8,17 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+def to_huggingface(dataset_object, output_csv_path:str="metadata.csv"):
+    wav = [wav_files for wave_files in dataset_object["input_features"]]
+    txt = [txt_files for txte_files in dataset_object["labels"]]
+
+    data = {
+        "file_name": wav,
+        "text": txt
+    }
+    df = pd.DataFrame(data)
+    df.to_csv(output_csv_path, index=False)
 
 def get_train_test_datasets(
     processor,
