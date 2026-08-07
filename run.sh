@@ -27,12 +27,12 @@ mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE"
 
 module purge
 module load cuda
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-module load cuda
 module load anaconda
+
 conda activate french_clear_speech
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 cd /projects/$USER/french-clear-speech
 
-MODEL_TYPE=${1:-train}
+MODEL_TYPE=${1:-train}[cite: 8]
 python -u run.py -o "$MODEL_TYPE"
