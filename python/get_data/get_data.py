@@ -9,12 +9,11 @@ def get_data(
     ds_train = load_dataset(repo_id, split="train")
     ds_test = load_dataset(repo_id, split="test")
 
-    # Filter out samples where audio failed to link
-    ds_train = ds_train.filter(lambda example: example["audio"] is not None)
-    ds_test = ds_test.filter(lambda example: example["audio"] is not None)
-
     ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000))
     ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000))
+
+    ds_train = ds_train.filter(lambda example: example["audio"] is not None and example["audio"]["array"] is not None)
+    ds_test = ds_test.filter(lambda example: example["audio"] is not None and example["audio"]["array"] is not None)
 
     def prepare_dataset(batch):
         audio = batch["audio"]
