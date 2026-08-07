@@ -28,12 +28,10 @@ def get_data(
     processed_dataset_train = ds_train.map(
         prepare_dataset,
         remove_columns=ds_train.column_names,
-        num_proc=4
     )
     processed_dataset_test = ds_test.map(
         prepare_dataset,
         remove_columns=ds_test.column_names,
-        num_proc=4
     )
 
     return processed_dataset_train, processed_dataset_test
