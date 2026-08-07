@@ -24,7 +24,7 @@ def get_data(
             )
         )
     except (HfHubHTTPError, Exception) as e:
-        print(f"Warning: Hub download rate limited or failed ({e}). Falling back to local/cached data.")
+        print(f"Warning: Hub download rate limited or failed ({e}). Falling back to local data.")
         repo_dir = local_praat_dir
 
     ds_train = load_dataset(repo_id, split="train")
@@ -49,22 +49,27 @@ def get_data(
     ds_test = ds_test.filter(is_audio_valid)
 
     def prepare_dataset(batch):
-        audio = batch["audio"]
+        input_features = [
+            feature_extractor(arr, sampling_rate=16000).input_features[0]
+            for arr in batch["audio"]
+        ]
+        labels = processor.tokenizer(batch["text"]).input_ids
 
-        batch["input_features"] = feature_extractor(
-            audio["array"],
-            sampling_rate=audio["sampling_rate"]
-        ).input_features[0]
-
-        batch["labels"] = processor.tokenizer(batch["text"]).input_ids
-        return batch
+        return {
+            "input_features": input_features,
+            "labels": labels
+        }
 
     processed_dataset_train = ds_train.map(
         prepare_dataset,
+        batched=True,
+        batch_size=16,
         remove_columns=cast(list[str], ds_train.column_names)
     )
     processed_dataset_test = ds_test.map(
         prepare_dataset,
+        batched=True,
+        batch_size=16,
         remove_columns=cast(list[str], ds_test.column_names)
     )
 
