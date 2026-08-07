@@ -30,9 +30,9 @@ module load cuda
 module load anaconda
 
 conda activate french_clear_speech
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 cd /projects/$USER/french-clear-speech
 
-MODEL_TYPE=${1:-train}[cite: 8]
+MODEL_TYPE=${1:-train}
 python -u run.py -o "$MODEL_TYPE"
