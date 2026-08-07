@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from datasets import Audio, load_dataset
+from huggingface_hub import snapshot_download
 
 
 def get_data(
@@ -6,14 +9,19 @@ def get_data(
     feature_extractor,
     repo_id: str = "lookitsluc1/french_cleer_speech"
 ):
-    ds_train = load_dataset(repo_id, split="train")
-    ds_test = load_dataset(repo_id, split="test")
+    repo_dir = Path(snapshot_download("lookitsluc1/french_cleer_speech", repo_type="dataset"))
 
+    ds_train = load_dataset("lookitsluc1/french_cleer_speech", split="train")
+    ds_test = load_dataset("lookitsluc1/french_cleer_speech", split="test")
+
+    ds_train = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
     ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000))
-    ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000))
 
-    ds_train = ds_train.filter(lambda example: example["audio"] is not None and example["audio"]["array"] is not None)
-    ds_test = ds_test.filter(lambda example: example["audio"] is not None and example["audio"]["array"] is not None)
+    ds_test = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
+    ds_test = ds_test.cast_column("file_name", Audio(sampling_rate=16000))
+
+    ds_train = ds_train.filter(lambda example: example["file_name"] is not None and example["file_name"]["array"] is not None)
+    ds_test = ds_test.filter(lambda example: example["file_name"] is not None and example["file_name"]["array"] is not None)
 
     def prepare_dataset(batch):
         audio = batch["audio"]
