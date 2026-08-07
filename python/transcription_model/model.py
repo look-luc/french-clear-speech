@@ -30,11 +30,15 @@ def data_collate(batch, processor, feature_extractor):
     label_list = [{"input_ids": item["labels"]} for item in batch]
 
     padded_inputs = feature_extractor.pad(feature_list, return_tensors="pt")
-    padded_labels = processor.tokenizer.pad(label_list, return_tensors="pt", padding_side=-100)
+    padded_labels = processor.tokenizer.pad(label_list, return_tensors="pt")
+
+    labels = padded_labels["input_ids"].masked_fill(
+        padded_labels["input_ids"] == processor.tokenizer.pad_token_id, -100
+    )
 
     return {
         "input_features": padded_inputs.input_features,
-        "labels": padded_labels.input_ids,
+        "labels": labels,
     }
 
 class French_Speech_text:
@@ -114,7 +118,7 @@ class French_Speech_text:
 
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
-            per_device_train_batch_size=1,
+            per_device_train_batch_size=8,
             per_device_eval_batch_size=1,
             dataloader_pin_memory=is_cuda,
             dataloader_prefetch_factor=2 if is_cuda else None,
