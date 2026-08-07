@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 from datasets import Audio, load_dataset
 from huggingface_hub import snapshot_download
@@ -36,13 +37,11 @@ def get_data(
 
     processed_dataset_train = ds_train.map(
         prepare_dataset,
-        remove_columns=ds_train.column_names,
-        num_proc=4
+        remove_columns=cast(list[str],ds_train.column_names,)
     )
     processed_dataset_test = ds_test.map(
         prepare_dataset,
-        remove_columns=ds_test.column_names,
-        num_proc=4
+        remove_columns=cast(list[str],ds_test.column_names,)
     )
 
     return processed_dataset_train, processed_dataset_test
