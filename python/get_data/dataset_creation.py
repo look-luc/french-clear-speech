@@ -6,18 +6,18 @@ import torch
 import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
+from transformers import AutoFeatureExtractor, WhisperProcessor
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 def to_huggingface(dataset_object, output_csv_path:str="metadata.csv"):
-    wav = [wav_files for wave_files in dataset_object["input_features"]]
-    txt = [txt_files for txte_files in dataset_object["labels"]]
+    wav_names = [wav_path.name for wav_path, _ in dataset_object.data_pairs]
+    transcripts = [txt_path.read_text(encoding="utf-8").strip() for _, txt_path in dataset_object.data_pairs]
 
-    data = {
-        "file_name": wav,
-        "text": txt
-    }
-    df = pd.DataFrame(data)
+    df = pd.DataFrame({
+        "file_name": wav_names,
+        "text": transcripts
+    })
     df.to_csv(output_csv_path, index=False)
 
 def get_train_test_datasets(
@@ -82,3 +82,21 @@ class Data(Dataset):
         label_ids = self.processor.tokenizer(transcript).input_ids
 
         return {"input_features": extracted_features, "labels": label_ids}
+
+if __name__ == "__main__":
+    model_id = "bofenghuang/whisper-medium-french"
+    processor = WhisperProcessor.from_pretrained(model_id)
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
+
+    praat_data_dir = BASE_DIR / "praat" / "data"
+    train_dataset, test_dataset = get_train_test_datasets(
+        processor,
+        feature_extractor,
+        audio_dir=praat_data_dir,
+        txt_dir=praat_data_dir
+    )
+
+    to_huggingface(train_dataset, f"{BASE_DIR}/praat/train_metadata.csv")
+    print("finished train dataset csv")
+    to_huggingface(test_dataset, f"{BASE_DIR}/praat/test_metadata.csv")
+    print("finished test dataset csv")
