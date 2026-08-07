@@ -1,6 +1,7 @@
 from pathlib import Path
 
-import torchaudio
+import soundfile as sf
+import torch
 import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
@@ -46,7 +47,13 @@ class Data(Dataset):
     def __getitem__(self, idx: int) -> dict:
         wav_path, txt_path = self.data_pairs[idx]
 
-        waveform, sample_rate = torchaudio.load(str(wav_path))
+        file, sample_rate = sf.read(str(wav_path))
+        waveform = torch.from_numpy(file).float()
+
+        if waveform.ndim == 1:
+            waveform = waveform.unsqueeze(0)
+        else:
+            waveform = waveform.T
 
         if sample_rate != 16000:
             resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)

@@ -22,6 +22,8 @@ mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE"
 
 module purge
 module load cuda
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+module load cuda
 module load anaconda
 conda activate french_clear_speech
 
