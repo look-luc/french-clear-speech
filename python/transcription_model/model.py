@@ -65,7 +65,7 @@ class French_Speech_text:
     def _setup(self):
         processor = WhisperProcessor.from_pretrained(self.model_id)
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
-        model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
+        model = WhisperForConditionalGeneration.from_pretrained(self.model_id, use_safetensors=True)
 
         train_dataset, test_dataset = get_data(
             processor,
