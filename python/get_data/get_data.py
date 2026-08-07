@@ -49,10 +49,14 @@ def get_data(
     ds_test = ds_test.filter(is_audio_valid)
 
     def prepare_dataset(batch):
-        input_features = [
-            feature_extractor(arr, sampling_rate=16000).input_features[0]
-            for arr in batch["audio"]
-        ]
+        # Extract raw audio arrays from AudioDecoder objects
+        audio_arrays = [item["array"] for item in batch["audio"]]
+
+        input_features = feature_extractor(
+            audio_arrays,
+            sampling_rate=16000
+        ).input_features
+
         labels = processor.tokenizer(batch["text"]).input_ids
 
         return {
