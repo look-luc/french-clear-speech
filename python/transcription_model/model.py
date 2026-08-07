@@ -1,4 +1,5 @@
 import sys
+from functools import partial
 from pathlib import Path
 
 import evaluate
@@ -25,6 +26,7 @@ cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
 f1_metric = EditDistance()
 
+
 def data_collate(batch, processor, feature_extractor):
     feature_list = [{"input_features": item["input_features"]} for item in batch]
     label_list = [{"input_ids": item["labels"]} for item in batch]
@@ -40,6 +42,7 @@ def data_collate(batch, processor, feature_extractor):
         "input_features": padded_inputs.input_features,
         "labels": labels,
     }
+
 
 class French_Speech_text:
     def __init__(
@@ -64,7 +67,6 @@ class French_Speech_text:
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id)
 
-        praat_data_dir = root_dir / "praat" / "data"
         train_dataset, test_dataset = get_data(
             processor,
             feature_extractor
@@ -125,16 +127,23 @@ class French_Speech_text:
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
             learning_rate=2e-5,
-            max_steps=2500,
+            max_steps=500,
             eval_strategy="steps",
-            eval_steps=500,
+            eval_steps=200,
             remove_unused_columns=False,
             max_grad_norm=1.0,
-            warmup_steps=125,
+            warmup_steps=50,
             lr_scheduler_type="cosine",
             bf16=use_bf16,
             fp16=(is_cuda and not use_bf16),
             use_cpu=not is_cuda,
+        )
+
+        # Top-level functools.partial avoids pickle errors in multiprocessing
+        picklable_collator = partial(
+            data_collate,
+            processor=self.processor,
+            feature_extractor=self.feature_extractor
         )
 
         trainer = Seq2SeqTrainer(
@@ -142,7 +151,7 @@ class French_Speech_text:
             args=training_args,
             train_dataset=self.train_split,
             eval_dataset=self.test_split,
-            data_collator=lambda batch: data_collate(batch, self.processor, self.feature_extractor),
+            data_collator=picklable_collator,
             compute_metrics=self._compute_metrics,
         )
 
@@ -154,22 +163,4 @@ class French_Speech_text:
         return train_result
 
     def transcribe(self):
-        # model.generate(
-        #     input_features,
-        #     language="fr",
-        #     task="transcribe",
-
-        #     # 1. Simulate "Mishearing" via High Temperature
-        #     do_sample=True,
-        #     temperature=0.8,         # Forces the model to guess phonetically similar but wrong words
-
-        #     # 2. Simulate "Missing Context" by limiting vision
-        #     num_beams=1,             # No look-ahead context; forces rigid word-by-word guessing
-
-        #     # 3. Simulate "Giving Up" early on weak signals
-        #     logprob_threshold=-0.4,  # If a word isn't crystal clear, Whisper stops or drops it
-
-        #     # 4. Prevent repetitive guessing
-        #     no_repeat_ngram_size=3   # Stops the model from looping if it gets confused by a sound
-        # )
         pass
