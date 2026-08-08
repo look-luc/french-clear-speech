@@ -5,7 +5,6 @@ from pathlib import Path
 import evaluate
 import numpy as np
 import torch
-from torchmetrics.text import EditDistance
 from transformers import (
     AutoFeatureExtractor,
     Seq2SeqTrainer,
@@ -24,7 +23,6 @@ from python.get_data.get_data import get_data
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
-f1_metric = EditDistance()
 
 
 def data_collate(batch, processor, feature_extractor):
@@ -49,7 +47,8 @@ class French_Speech_text:
         self,
         model_id: str = "bofenghuang/whisper-medium-french",
         level_tweak: float = 0.0,
-        device: str = ""
+        device: str = "",
+        freeze_encoder: bool = True,
     ) -> None:
         if device == "" or device is None:
             self.device = torch.device(
@@ -61,6 +60,10 @@ class French_Speech_text:
         self.model_id = model_id
         self.processor, self.feature_extractor, self.model, self.train_split, self.test_split = self._setup()
         self.level_tweak = level_tweak
+
+        # Freeze acoustic encoder to speed up fine-tuning and save memory
+        if freeze_encoder:
+            self.model.freeze_encoder()
 
     def _setup(self):
         processor = WhisperProcessor.from_pretrained(self.model_id)
@@ -81,9 +84,6 @@ class French_Speech_text:
         if isinstance(pred_ids, tuple):
             pred_ids = pred_ids[0]
 
-        if pred_ids.ndim == 3:
-            pred_ids = np.argmax(pred_ids, axis=-1)
-
         pad_id = (
             self.processor.tokenizer.pad_token_id
             if self.processor.tokenizer.pad_token_id is not None
@@ -91,10 +91,9 @@ class French_Speech_text:
         )
 
         clean_label_ids = np.where(label_ids != -100, label_ids, pad_id)
-        clean_pred_ids = np.where(label_ids != -100, pred_ids, pad_id)
 
         decoded_preds = self.processor.tokenizer.batch_decode(
-            clean_pred_ids, skip_special_tokens=True
+            pred_ids, skip_special_tokens=True
         )
         decoded_labels = self.processor.tokenizer.batch_decode(
             clean_label_ids, skip_special_tokens=True
@@ -106,11 +105,7 @@ class French_Speech_text:
         cer_score = cer_metric.compute(predictions=decoded_preds, references=decoded_labels)
         wer_score = wer_metric.compute(predictions=decoded_preds, references=decoded_labels)
 
-        f1_metric.update(decoded_preds, decoded_labels)
-        f1_score = f1_metric.compute()
-        f1_metric.reset()
-
-        return {"F1": f1_score, "CER": cer_score, "WER": wer_score}
+        return {"CER": cer_score, "WER": wer_score}
 
     def train(self, output_dir: str = "./whisper-french-final"):
         is_cuda = torch.cuda.is_available()
@@ -119,18 +114,20 @@ class French_Speech_text:
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
             per_device_train_batch_size=8,
-            per_device_eval_batch_size=1,
+            per_device_eval_batch_size=8,
             dataloader_pin_memory=is_cuda,
             dataloader_prefetch_factor=2 if is_cuda else None,
             gradient_checkpointing=True,
             dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
-            learning_rate=2e-5,
+            learning_rate=1e-4,
             max_steps=1000,
             eval_strategy="steps",
             eval_steps=100,
             logging_steps=1,
+            predict_with_generate=True,  # Enables autoregressive generation during evaluation
+            generation_max_length=225,
             remove_unused_columns=False,
             max_grad_norm=1.0,
             warmup_steps=50,
@@ -140,7 +137,6 @@ class French_Speech_text:
             use_cpu=not is_cuda,
         )
 
-        # Top-level functools.partial avoids pickle errors in multiprocessing
         picklable_collator = partial(
             data_collate,
             processor=self.processor,
