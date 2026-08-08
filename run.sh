@@ -1,14 +1,15 @@
 #!/bin/bash
 #SBATCH --gres=gpu:1
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=3:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
-#SBATCH --partition=blanca-clearlab2
-#SBATCH --account=blanca-clearlab2
-#SBATCH --qos=blanca-clearlab2
+#SBATCH --partition=aa100
+#SBATCH --account=ucb-general
+#SBATCH --qos=gpu-normal
 #SBATCH --mail-type=END,FAIL
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
