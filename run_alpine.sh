@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100-40gb:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -8,7 +8,7 @@
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
 #SBATCH --partition=aa100
-#SBATCH --account=ucb-general
+#SBATCH --account=ucb-testing
 #SBATCH --qos=gpu-normal
 #SBATCH --mail-type=END,FAIL
 
