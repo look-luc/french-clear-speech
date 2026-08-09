@@ -8,11 +8,11 @@ import numpy as np
 import torch
 from transformers import (
     AutoFeatureExtractor,
+    AutoProcessor,
     EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     WhisperForConditionalGeneration,
-    WhisperProcessor,
 )
 
 python_dir = Path(__file__).resolve().parents[1]
@@ -68,7 +68,7 @@ class French_Speech_text:
             self.model.freeze_encoder()
 
     def _setup(self):
-        processor = WhisperProcessor.from_pretrained(self.model_id)
+        processor = AutoProcessor.from_pretrained(self.model_id, language="french", task="transcribe")
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
         model = WhisperForConditionalGeneration.from_pretrained(self.model_id, use_safetensors=True)
 
@@ -123,7 +123,8 @@ class French_Speech_text:
             dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
-            learning_rate=3e-5,
+            learning_rate=1e-5,
+            weight_decay=0.01,
             max_steps=400,
             eval_strategy="steps",
             eval_steps=100,
