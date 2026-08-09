@@ -85,8 +85,7 @@ def metrics_graph(path_to_results: str = str(BASE_DIR / "results" / "log_1000_2"
 
     metrics = _build_df(result_json_path)
     metric_names = [
-        "training loss", "gradient normalization", "evaluation loss",
-        "BLEU score", "CER score", "WER score"
+        "training loss", "gradient normalization", "evaluation loss","CER score", "WER score"
     ]
     colors = ['#0072B2', '#E69F00', '#009E73', '#F0E442', '#D55E00', '#CC79A7']
 

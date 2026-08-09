@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from transformers import (
     AutoFeatureExtractor,
+    EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     WhisperForConditionalGeneration,
@@ -121,12 +122,18 @@ class French_Speech_text:
             dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=1,
-            learning_rate=1e-4,
-            max_steps=1000,
+            learning_rate=3e-5,
+            max_steps=400,
             eval_strategy="steps",
-            eval_steps=100,
+            eval_steps=10,
+            save_strategy="steps",
+            save_steps=100,
+            save_total_limit=2,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_CER",
+            greater_is_better=False,
             logging_steps=1,
-            predict_with_generate=True,  # Enables autoregressive generation during evaluation
+            predict_with_generate=True,
             generation_max_length=225,
             remove_unused_columns=False,
             max_grad_norm=1.0,
@@ -150,6 +157,7 @@ class French_Speech_text:
             eval_dataset=self.test_split,
             data_collator=picklable_collator,
             compute_metrics=self._compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
         )
 
         train_result = trainer.train()
