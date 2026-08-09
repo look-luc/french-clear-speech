@@ -8,11 +8,11 @@ import numpy as np
 import torch
 from transformers import (
     AutoFeatureExtractor,
+    AutoModelForSpeechSeq2Seq,
     AutoProcessor,
     EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    WhisperForConditionalGeneration,
 )
 
 python_dir = Path(__file__).resolve().parents[1]
@@ -46,12 +46,12 @@ def data_collate(batch, processor, feature_extractor):
 
 class French_Speech_text:
     def __init__(
-        self,
-        model_id: str = "bofenghuang/whisper-medium-french",
-        level_tweak: float = 0.0,
-        device: str = "",
-        freeze_encoder: bool = True,
-    ) -> None:
+            self,
+            model_id: str = "bofenghuang/whisper-medium-french",
+            level_tweak: float = 0.0,
+            device: str = "",
+            freeze_encoder: bool = True,
+        ) -> None:
         if device == "" or device is None:
             self.device = torch.device(
                 "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -70,7 +70,11 @@ class French_Speech_text:
     def _setup(self):
         processor = AutoProcessor.from_pretrained(self.model_id, language="french", task="transcribe")
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
-        model = WhisperForConditionalGeneration.from_pretrained(self.model_id, use_safetensors=True)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id, use_safetensors=True)
+
+        forced_decoder_ids = processor.get_decoder_prompt_ids(language="french", task="transcribe")
+        model.generation_config.forced_decoder_ids = forced_decoder_ids
+        model.generation_config.use_timestamps = False
 
         train_dataset, test_dataset = get_data(
             processor,
@@ -129,7 +133,6 @@ class French_Speech_text:
             eval_strategy="steps",
             eval_steps=100,
             save_strategy="steps",
-            save_steps=100,
             save_total_limit=1,
             load_best_model_at_end=True,
             metric_for_best_model="eval_CER",
