@@ -1,3 +1,4 @@
+import os
 import sys
 from functools import partial
 from pathlib import Path
@@ -128,7 +129,7 @@ class French_Speech_text:
             eval_steps=100,
             save_strategy="steps",
             save_steps=100,
-            save_total_limit=2,
+            save_total_limit=1,
             load_best_model_at_end=True,
             metric_for_best_model="eval_CER",
             greater_is_better=False,
@@ -161,9 +162,14 @@ class French_Speech_text:
         )
 
         train_result = trainer.train()
+
+        os.makedirs(output_dir, exist_ok=True)
+
         trainer.save_model(output_dir)
         self.processor.save_pretrained(output_dir)
         self.feature_extractor.save_pretrained(output_dir)
+        self.processor.tokenizer.save_pretrained(output_dir)
+        self.model.generation_config.save_pretrained(output_dir)
 
         return train_result
 
