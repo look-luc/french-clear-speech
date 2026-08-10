@@ -47,7 +47,6 @@ def data_collate(batch, processor, feature_extractor):
     return {
         "input_features": padded_inputs.input_features,
         "labels": labels,
-        "decoder_input_ids": decoder_input_ids,
     }
 
 
@@ -91,7 +90,11 @@ class French_Speech_text:
             self.model_id, use_safetensors=True
         ).to(self.device)
 
-        model.generation_config.forced_decoder_ids = None
+        forced_decoder_ids = processor.get_decoder_prompt_ids(
+            language="french", task="transcribe"
+        )
+        model.generation_config.forced_decoder_ids = forced_decoder_ids
+
         model.generation_config.language = "french"
         model.generation_config.task = "transcribe"
         model.generation_config.use_timestamps = False
@@ -182,7 +185,7 @@ class French_Speech_text:
             metric_for_best_model="eval_CER",
             greater_is_better=False,
             logging_steps=10,
-            predict_with_generate=True,
+            predict_with_generate=False,
             generation_max_length=200,
             generation_num_beams=1,
             remove_unused_columns=False,
