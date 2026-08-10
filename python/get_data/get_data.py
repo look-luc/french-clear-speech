@@ -19,12 +19,10 @@ def get_data(
     processor,
     feature_extractor,
     repo_id: str = "lookitsluc1/french_cleer_speech",
-    include_common_voice: bool = True,
-    common_voice_repo: str = "fsicoli/common_voice_17_0",
+    common_voice_repo: str = "mozilla-foundation/common_voice_17_0",
 ):
     local_praat_dir = Path(__file__).resolve().parents[2] / "praat" / "data"
 
-    # --- 1. Load Local Dataset ---
     try:
         repo_dir = Path(
             snapshot_download(
@@ -53,8 +51,12 @@ def get_data(
     ds_train = ds_train.select_columns(["audio", "text"])
     ds_test = ds_test.select_columns(["audio", "text"])
 
-    cv_train = load_dataset(common_voice_repo, "fr", split="train")
-    cv_test = load_dataset(common_voice_repo, "fr", split="test")
+    try:
+        cv_train = load_dataset(common_voice_repo, "fr", split="train")
+        cv_test = load_dataset(common_voice_repo, "fr", split="test")
+    except RuntimeError:
+        cv_train = load_dataset("fsicoli/common_voice_17_0", "fr", split="train")
+        cv_test = load_dataset("fsicoli/common_voice_17_0", "fr", split="test")
 
     cv_train = cv_train.rename_column("sentence", "text")
     cv_test = cv_test.rename_column("sentence", "text")
