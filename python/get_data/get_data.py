@@ -19,7 +19,7 @@ def get_data(
     processor,
     feature_extractor,
     repo_id: str = "lookitsluc1/french_cleer_speech",
-    common_voice_repo: str = "mozilla-foundation/common_voice_17_0",
+    common_voice_repo: str = "facebook/multilingual_librispeech",
 ):
     local_praat_dir = Path(__file__).resolve().parents[2] / "praat" / "data"
 
@@ -51,21 +51,14 @@ def get_data(
     ds_train = ds_train.select_columns(["audio", "text"])
     ds_test = ds_test.select_columns(["audio", "text"])
 
-    try:
-        cv_train = load_dataset(common_voice_repo, "fr", split="train")
-        cv_test = load_dataset(common_voice_repo, "fr", split="test")
-    except RuntimeError:
-        cv_train = load_dataset("fsicoli/common_voice_17_0", "fr", split="train")
-        cv_test = load_dataset("fsicoli/common_voice_17_0", "fr", split="test")
+    cv_train = load_dataset(common_voice_repo, "french", split="train[:1000]")
+    cv_test = load_dataset(common_voice_repo, "french", split="test[:500]")
 
-    cv_train = cv_train.rename_column("sentence", "text")
-    cv_test = cv_test.rename_column("sentence", "text")
+    cv_train = cv_train.rename_column("transcript", "text")
+    cv_test = cv_test.rename_column("transcript", "text")
 
-    cv_train = cv_train.cast_column("audio", Audio(sampling_rate=16000))
-    cv_test = cv_test.cast_column("audio", Audio(sampling_rate=16000))
-
-    cv_train = cv_train.select(range(min(10000, len(cv_train))))
-    cv_test = cv_test.select(range(min(500, len(cv_test))))
+    cv_train = cv_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
+    cv_test = cv_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
 
     cv_train = cv_train.select_columns(["audio", "text"])
     cv_test = cv_test.select_columns(["audio", "text"])
