@@ -43,6 +43,7 @@ def data_collate(batch, processor, feature_extractor):
         "labels": labels,
     }
 
+
 class French_Speech_text:
     def __init__(
         self,
@@ -99,22 +100,11 @@ class French_Speech_text:
         )
         model = get_peft_model(model, peft_config)
 
-        base_model = model.get_base_model() if hasattr(model, "get_base_model") else model.base_model
-        raw_base_generate = base_model.generate
-
-        def safe_generate(*args, **kwargs):
-            if "input_features" in kwargs:
-                kwargs.pop("input_ids", None)
-
-            if "decoder_input_ids" in kwargs and "input_ids" in kwargs:
-                kwargs.pop("input_ids", None)
-
-            return raw_base_generate(*args, **kwargs)
-
-        base_model.generate = safe_generate
-        model.generate = safe_generate
-
         train_dataset, test_dataset = get_data(processor, feature_extractor)
+
+        for dataset in [train_dataset, test_dataset]:
+            if hasattr(dataset, "column_names") and "input_ids" in dataset.column_names:
+                dataset = dataset.remove_columns(["input_ids"])
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
@@ -196,18 +186,18 @@ class French_Speech_text:
         )
 
         picklable_collator = partial(
-        data_collate,
-        processor=self.processor,
-        feature_extractor=self.feature_extractor,
+            data_collate,
+            processor=self.processor,
+            feature_extractor=self.feature_extractor,
         )
 
         trainer = Seq2SeqTrainer(
-        model=self.model,
-        args=training_args,
-        train_dataset=self.train_split,
-        eval_dataset=self.test_split,
-        data_collator=picklable_collator,
-        compute_metrics=self._compute_metrics,
+            model=self.model,
+            args=training_args,
+            train_dataset=self.train_split,
+            eval_dataset=self.test_split,
+            data_collator=picklable_collator,
+            compute_metrics=self._compute_metrics,
         )
 
         train_result = trainer.train()
