@@ -17,11 +17,17 @@ from python.get_data.get_data import get_data
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
 
-def simple_progress(iterable, desc:str="Evaluating Base Model"):
+
+def simple_progress(iterable, desc: str = "Evaluating Base Model"):
     total = len(iterable)
     for i, item in enumerate(iterable):
-        print(f"\r{desc}: {i + 1}/{total} ({(i + 1) / total * 100:.1f}%)", end="", flush=True)
+        print(
+            f"\r{desc}: {i + 1}/{total} ({(i + 1) / total * 100:.1f}%)",
+            end="",
+            flush=True,
+        )
         yield item
+
 
 class French_Speech_text_base:
     def __init__(
@@ -74,7 +80,7 @@ class French_Speech_text_base:
 
         return processor, model, train_dataset, test_dataset
 
-    def predict(self, max_samples:int|None = None):
+    def predict(self, max_samples: int | None = None):
         predictions = []
         references = []
 
@@ -82,17 +88,15 @@ class French_Speech_text_base:
         if max_samples is not None:
             dataset = dataset.select(range(min(max_samples, len(dataset))))
 
-        # Iterate directly over the dataset samples
         for sample in simple_progress(dataset, desc="Evaluating Base Model"):
-            waveform = sample["audio"]["array"]
-            sampling_rate = sample["audio"]["sampling_rate"]
+            input_features = torch.tensor(sample["input_features"], dtype=torch.float32)
+            if input_features.ndim == 2:
+                input_features = input_features.unsqueeze(0)
+            input_features = input_features.to(self.device)
 
-            reference_text = sample.get("sentence", sample.get("text", ""))
-
-            inputs = self.processor(
-                waveform, sampling_rate=sampling_rate, return_tensors="pt"
+            reference_text = self.processor.tokenizer.decode(
+                sample["labels"], skip_special_tokens=True
             )
-            input_features = inputs.input_features.to(self.device)
 
             with torch.no_grad():
                 generated_ids = self.model.generate(
@@ -106,7 +110,7 @@ class French_Speech_text_base:
             predictions.append(pred_text.strip())
             references.append(reference_text.strip())
 
-        print()  # Clear line after progress indicator
+        print()
         cer_score = cer_metric.compute(
             predictions=predictions, references=references
         )
