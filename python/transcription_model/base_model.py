@@ -64,17 +64,10 @@ class French_Speech_text_base:
         )
 
     def _setup(self):
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            self.model_id, use_safetensors=True
-        ).to(self.device)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained("bofenghuang/whisper-medium-french").to(self.device)
+        processor = AutoProcessor.from_pretrained("bofenghuang/whisper-medium-french", language="french", task="transcribe")
 
-        processor = AutoProcessor.from_pretrained(
-            self.model_id, language="french", task="transcribe"
-        )
-
-        model.generation_config.language = "french"
-        model.generation_config.task = "transcribe"
-        model.generation_config.forced_decoder_ids = None
+        model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
         model.generation_config.max_length = None
 
         feature_extractor = AutoFeatureExtractor.from_pretrained(
