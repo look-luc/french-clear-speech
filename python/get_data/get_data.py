@@ -8,6 +8,7 @@ import scipy.signal
 import soundfile as sf
 from datasets import (
     Audio,
+    concatenate_datasets,
     load_dataset,
 )
 from huggingface_hub import snapshot_download
@@ -17,10 +18,13 @@ from huggingface_hub.errors import HfHubHTTPError
 def get_data(
     processor,
     feature_extractor,
-    repo_id: str = "lookitsluc1/french_cleer_speech"
+    repo_id: str = "lookitsluc1/french_cleer_speech",
+    include_common_voice: bool = True,
+    common_voice_repo: str = "mozilla-foundation/common_voice_17_0",
 ):
     local_praat_dir = Path(__file__).resolve().parents[2] / "praat" / "data"
 
+    # --- 1. Load Local Dataset ---
     try:
         repo_dir = Path(
             snapshot_download(
@@ -46,17 +50,37 @@ def get_data(
     ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
     ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
 
+    ds_train = ds_train.select_columns(["audio", "text"])
+    ds_test = ds_test.select_columns(["audio", "text"])
+
+    cv_train = load_dataset("fsicoli/common_voice_17_0", "fr", split="train")
+    cv_test = load_dataset("fsicoli/common_voice_17_0", "fr", split="test")
+
+    cv_train = cv_train.rename_column("sentence", "text")
+    cv_test = cv_test.rename_column("sentence", "text")
+
+    cv_train = cv_train.cast_column("audio", Audio(sampling_rate=16000))
+    cv_test = cv_test.cast_column("audio", Audio(sampling_rate=16000))
+
+    cv_train = cv_train.select_columns(["audio", "text"])
+    cv_test = cv_test.select_columns(["audio", "text"])
+
+    ds_train = concatenate_datasets([ds_train, cv_train])
+    ds_test = concatenate_datasets([ds_test, cv_test])
+
     def prepare_dataset(batch):
         audio_arrays = []
-        for path in batch["audio"]:
-            audio_path = path["path"] if isinstance(path, dict) else path
-            array, orig_sr = sf.read(audio_path)
+        for item in batch["audio"]:
+            if isinstance(item, dict) and "array" in item and item["array"] is not None:
+                array = item["array"]
+                orig_sr = item.get("sampling_rate", 16000)
+            else:
+                audio_path = item["path"] if isinstance(item, dict) else item
+                array, orig_sr = sf.read(audio_path)
 
-            # Convert multi-channel stereo to 1D mono
             if array.ndim > 1:
                 array = array.mean(axis=-1)
 
-            # Polyphase resample to 16,000 Hz if original sample rate differs
             if orig_sr != 16000:
                 array = scipy.signal.resample_poly(array, 16000, orig_sr)
 
@@ -73,6 +97,7 @@ def get_data(
         pattern_spaces = r"\s+"
 
         for text in batch["text"]:
+            text = text or ""
             text = re.sub(pattern_tags, "", text)
             text = re.sub(pattern_l, "l'", text, flags=re.IGNORECASE)
             text = re.sub(pattern_spaces, " ", text).strip()

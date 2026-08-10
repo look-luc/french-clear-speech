@@ -100,6 +100,16 @@ class French_Speech_text:
         model = get_peft_model(model, peft_config)
         model.enable_input_require_grads()
 
+        base_model = model.get_base_model()
+        orig_forward = base_model.forward
+
+        def forward_without_input_ids(*args, **kwargs):
+          kwargs.pop("input_ids", None)
+          return orig_forward(*args, **kwargs)
+
+
+        base_model.forward = forward_without_input_ids
+
         train_dataset, test_dataset = get_data(processor, feature_extractor)
 
         if hasattr(train_dataset, "column_names") and "input_ids" in train_dataset.column_names:
