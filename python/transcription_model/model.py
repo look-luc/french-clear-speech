@@ -38,9 +38,16 @@ def data_collate(batch, processor, feature_extractor):
         padded_labels["input_ids"] == processor.tokenizer.pad_token_id, -100
     )
 
+    if (labels[:, 0] == processor.tokenizer.bos_token_id).all():
+        decoder_input_ids = labels[:, :-1]
+        labels = labels[:, 1:]
+    else:
+        decoder_input_ids = padded_labels["input_ids"]
+
     return {
         "input_features": padded_inputs.input_features,
         "labels": labels,
+        "decoder_input_ids": decoder_input_ids,
     }
 
 
@@ -101,9 +108,6 @@ class French_Speech_text:
         model.enable_input_require_grads()
 
         base_model = model.get_base_model()
-        orig_forward = base_model.forward
-
-        base_model.forward = forward_without_input_ids
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
 
