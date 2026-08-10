@@ -5,7 +5,7 @@ from pathlib import Path
 import evaluate
 import torch
 import transformers
-import transformers.utils.import_utils
+import transformers.modeling_utils
 from datasets import concatenate_datasets
 from transformers import AutoFeatureExtractor, AutoModelForSpeechSeq2Seq, AutoProcessor
 
@@ -68,10 +68,16 @@ class French_Speech_text_base:
 
     def _setup(self):
         model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id).to(self.device)
-        processor = AutoProcessor.from_pretrained(self.model_id, language="french", task="transcribe")
+        processor = AutoProcessor.from_pretrained(
+            self.model_id, language="french", task="transcribe"
+        )
 
-        model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
+        model.generation_config.forced_decoder_ids = (
+            processor.get_decoder_prompt_ids(language="fr", task="transcribe")
+        )
         model.generation_config.max_length = None
+        model.generation_config.language = None
+        model.generation_config.task = None
 
         feature_extractor = AutoFeatureExtractor.from_pretrained(
             self.model_id, use_safetensors=True
