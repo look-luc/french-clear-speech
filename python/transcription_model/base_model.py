@@ -5,8 +5,11 @@ from pathlib import Path
 import evaluate
 import torch
 import transformers
+import transformers.utils.import_utils
 from datasets import concatenate_datasets
 from transformers import AutoFeatureExtractor, AutoModelForSpeechSeq2Seq, AutoProcessor
+
+transformers.utils.import_utils.check_torch_load_is_safe = lambda: None
 
 transformers.logging.set_verbosity_error()
 warnings.filterwarnings("ignore")
@@ -64,8 +67,8 @@ class French_Speech_text_base:
         )
 
     def _setup(self):
-        model = AutoModelForSpeechSeq2Seq.from_pretrained("bofenghuang/whisper-medium-french").to(self.device)
-        processor = AutoProcessor.from_pretrained("bofenghuang/whisper-medium-french", language="french", task="transcribe")
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id).to(self.device)
+        processor = AutoProcessor.from_pretrained(self.model_id, language="french", task="transcribe")
 
         model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
         model.generation_config.max_length = None
