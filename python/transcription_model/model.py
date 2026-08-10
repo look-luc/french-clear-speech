@@ -103,11 +103,6 @@ class French_Speech_text:
         base_model = model.get_base_model()
         orig_forward = base_model.forward
 
-        def forward_without_input_ids(*args, **kwargs):
-          kwargs.pop("input_ids", None)
-          return orig_forward(*args, **kwargs)
-
-
         base_model.forward = forward_without_input_ids
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
@@ -186,7 +181,7 @@ class French_Speech_text:
             predict_with_generate=True,
             generation_max_length=200,
             generation_num_beams=1,
-            remove_unused_columns=True,
+            remove_unused_columns=False,
             max_grad_norm=1.0,
             warmup_steps=30,
             lr_scheduler_type="cosine",
