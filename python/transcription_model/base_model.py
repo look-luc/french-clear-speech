@@ -101,12 +101,12 @@ class French_Speech_text_base:
 
         padded_inputs = self.processor.feature_extractor.pad(
             [{"input_features": f} for f in input_list],
-            return_tensors="pt"
+            return_tensors="pt",
         )
 
         padded_labels = self.processor.tokenizer.pad(
-            [{"input_ids": l} for l in label_list],
-            return_tensors="pt"
+            [{"input_ids": label} for label in label_list],
+            return_tensors="pt",
         )
 
         labels_tensor = padded_labels["input_ids"].masked_fill(
@@ -118,7 +118,7 @@ class French_Speech_text_base:
 
         return {
             "input_features": padded_inputs["input_features"],
-            "labels": labels_tensor
+            "labels": labels_tensor,
         }
 
     def predict(self, max_samples: int | None = None):
@@ -151,8 +151,12 @@ class French_Speech_text_base:
             pred_texts = self.processor.batch_decode(
                 generated_ids, skip_special_tokens=True
             )
+
+            valid_labels = labels.masked_fill(
+                labels == -100, self.processor.tokenizer.pad_token_id
+            )
             ref_texts = self.processor.batch_decode(
-                labels, skip_special_tokens=True
+                valid_labels, skip_special_tokens=True
             )
 
             predictions.extend([p.strip() for p in pred_texts])
@@ -167,4 +171,3 @@ class French_Speech_text_base:
         )
 
         return {"CER": cer_score, "WER": wer_score}
-```[cite: 6]
