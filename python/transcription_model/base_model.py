@@ -58,6 +58,20 @@ class French_Speech_text_base:
             [self.train_split, self.test_split]
         )
 
+        data_collator = DataCollatorSpeechSeq2SeqWithPadding(
+            processor=self.processor,
+            padding=True
+        )
+
+        self.dataloader = DataLoader(
+            self.eval_dataset,
+            batch_size=64,
+            collate_fn=data_collator,
+            shuffle=False,
+            num_workers=2,
+            pin_memory=True
+        )
+
     def _setup(self):
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id, use_safetensors=True
@@ -81,42 +95,33 @@ class French_Speech_text_base:
 
         return processor, model, train_dataset, test_dataset
 
-    def predict(self, max_samples: int | None = None):
+    def predict(self):
         predictions = []
         references = []
 
-        dataset = self.eval_dataset
-        if max_samples is not None:
-            dataset = dataset.select(range(min(max_samples, len(dataset))))
-
-        for sample in simple_progress(dataset, desc="Evaluating Base Model"):
-            input_features = torch.tensor(sample["input_features"], dtype=torch.float32)
-            if input_features.ndim == 2:
-                input_features = input_features.unsqueeze(0)
-            input_features = input_features.to(self.device)
-
-            reference_text = self.processor.tokenizer.decode(
-                sample["labels"], skip_special_tokens=True
-            )
+        for sample in simple_progress(self.dataloader, desc="Evaluating Base Model"):
+            input_features = sample["input_features"].to(self.device)
+            labels = sample["labels"]
 
             with torch.no_grad():
                 generated_ids = self.model.generate(
-                    input_features=input_features, max_new_tokens=225
+                    input_features=input_features,
+                    max_new_tokens=225
                 )
 
-            pred_text = self.processor.batch_decode(
+            pred_texts = self.processor.batch_decode(
                 generated_ids, skip_special_tokens=True
-            )[0]
+            )
 
-            predictions.append(pred_text.strip())
-            references.append(reference_text.strip())
+            labels = labels.masked_fill(labels == -100, self.processor.tokenizer.pad_token_id)
+            ref_texts = self.processor.batch_decode(
+                labels, skip_special_tokens=True
+            )
 
-        print()
-        cer_score = cer_metric.compute(
-            predictions=predictions, references=references
-        )
-        wer_score = wer_metric.compute(
-            predictions=predictions, references=references
-        )
+            predictions.extend([p.strip() for p in pred_texts])
+            references.extend([r.strip() for r in ref_texts])
+
+        cer_score = cer_metric.compute(predictions=predictions, references=references)
+        wer_score = wer_metric.compute(predictions=predictions, references=references)
 
         return {"CER": cer_score, "WER": wer_score}
