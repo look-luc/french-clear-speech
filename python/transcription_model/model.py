@@ -43,7 +43,6 @@ def data_collate(batch, processor, feature_extractor):
         "labels": labels,
     }
 
-
 class French_Speech_text:
     def __init__(
         self,
@@ -99,6 +98,17 @@ class French_Speech_text:
             task_type=TaskType.SEQ_2_SEQ_LM,
         )
         model = get_peft_model(model, peft_config)
+
+        # raw_generate = model.generate
+        # def safe_generate(*args, **kwargs):
+        #     kwargs.pop("input_ids", None)
+        #     if args:
+        #         kwargs["input_features"] = args[0]
+        #         args = ()
+        #     return raw_generate(*args, **kwargs)
+
+        # model.generate = safe_generate
+
         model.print_trainable_parameters()
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
@@ -171,7 +181,8 @@ class French_Speech_text:
             logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
-            remove_unused_columns=True,
+            generation_num_beams=2,
+            remove_unused_columns=False,
             max_grad_norm=1.0,
             warmup_steps=30,
             lr_scheduler_type="cosine",
