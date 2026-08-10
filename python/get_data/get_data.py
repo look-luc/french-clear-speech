@@ -117,12 +117,14 @@ def get_data(
         prepare_dataset,
         batched=True,
         batch_size=16,
+        num_proc=4,
         remove_columns=cast(list[str], ds_train.column_names)
     )
     processed_dataset_test = ds_test.map(
         prepare_dataset,
         batched=True,
         batch_size=16,
+        num_proc=4,
         remove_columns=cast(list[str], ds_test.column_names)
     )
 

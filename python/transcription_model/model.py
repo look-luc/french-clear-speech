@@ -185,7 +185,7 @@ class French_Speech_text:
             logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
-            generation_num_beams=2,
+            generation_num_beams=1,
             remove_unused_columns=True,
             max_grad_norm=1.0,
             warmup_steps=30,
