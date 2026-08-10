@@ -38,12 +38,6 @@ def data_collate(batch, processor, feature_extractor):
         padded_labels["input_ids"] == processor.tokenizer.pad_token_id, -100
     )
 
-    if (labels[:, 0] == processor.tokenizer.bos_token_id).all():
-        decoder_input_ids = labels[:, :-1]
-        labels = labels[:, 1:]
-    else:
-        decoder_input_ids = padded_labels["input_ids"]
-
     return {
         "input_features": padded_inputs.input_features,
         "labels": labels,
@@ -90,11 +84,9 @@ class French_Speech_text:
             self.model_id, use_safetensors=True
         ).to(self.device)
 
-        forced_decoder_ids = processor.get_decoder_prompt_ids(
-            language="french", task="transcribe"
+        model.generation_config.forced_decoder_ids = (
+            processor.get_decoder_prompt_ids(language="french", task="transcribe")
         )
-        model.generation_config.forced_decoder_ids = forced_decoder_ids
-
         model.generation_config.language = "french"
         model.generation_config.task = "transcribe"
         model.generation_config.use_timestamps = False
@@ -105,19 +97,12 @@ class French_Speech_text:
             target_modules=["q_proj", "v_proj"],
             lora_dropout=0.05,
             bias="none",
-            task_type=TaskType.SEQ_2_SEQ_LM,
+            task_type=None,
         )
         model = get_peft_model(model, peft_config)
         model.enable_input_require_grads()
 
-        base_model = model.get_base_model()
-
         train_dataset, test_dataset = get_data(processor, feature_extractor)
-
-        if hasattr(train_dataset, "column_names") and "input_ids" in train_dataset.column_names:
-            train_dataset = train_dataset.remove_columns(["input_ids"])
-        if hasattr(test_dataset, "column_names") and "input_ids" in test_dataset.column_names:
-            test_dataset = test_dataset.remove_columns(["input_ids"])
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
@@ -185,7 +170,7 @@ class French_Speech_text:
             metric_for_best_model="eval_CER",
             greater_is_better=False,
             logging_steps=10,
-            predict_with_generate=False,
+            predict_with_generate=True,  # Set back to True
             generation_max_length=200,
             generation_num_beams=1,
             remove_unused_columns=False,
