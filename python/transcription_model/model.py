@@ -6,11 +6,11 @@ from pathlib import Path
 import evaluate
 import numpy as np
 import torch
+from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoFeatureExtractor,
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
-    EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
 )
@@ -46,40 +46,62 @@ def data_collate(batch, processor, feature_extractor):
 
 class French_Speech_text:
     def __init__(
-            self,
-            model_id: str = "bofenghuang/whisper-medium-french",
-            level_tweak: float = 0.0,
-            device: str = "",
-            freeze_encoder: bool = True,
-        ) -> None:
+        self,
+        model_id: str = "bofenghuang/whisper-medium-french",
+        level_tweak: float = 0.0,
+        device: str = "",
+        lora_r: int = 8,
+        lora_alpha: int = 16,
+    ) -> None:
         if device == "" or device is None:
             self.device = torch.device(
-                "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+                "cuda:0"
+                if torch.cuda.is_available()
+                else "mps" if torch.backends.mps.is_available() else "cpu"
             )
         else:
             self.device = torch.device(device)
 
         self.model_id = model_id
-        self.processor, self.feature_extractor, self.model, self.train_split, self.test_split = self._setup()
+        self.lora_r = lora_r
+        self.lora_alpha = lora_alpha
+        (
+            self.processor,
+            self.feature_extractor,
+            self.model,
+            self.train_split,
+            self.test_split,
+        ) = self._setup()
         self.level_tweak = level_tweak
 
-        # Freeze acoustic encoder to speed up fine-tuning and save memory
-        if freeze_encoder:
-            self.model.freeze_encoder()
-
     def _setup(self):
-        processor = AutoProcessor.from_pretrained(self.model_id, language="french", task="transcribe")
+        processor = AutoProcessor.from_pretrained(
+            self.model_id, language="french", task="transcribe"
+        )
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id, use_safetensors=True)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            self.model_id, use_safetensors=True
+        )
 
-        forced_decoder_ids = processor.get_decoder_prompt_ids(language="french", task="transcribe")
+        forced_decoder_ids = processor.get_decoder_prompt_ids(
+            language="french", task="transcribe"
+        )
         model.generation_config.forced_decoder_ids = forced_decoder_ids
         model.generation_config.use_timestamps = False
 
-        train_dataset, test_dataset = get_data(
-            processor,
-            feature_extractor
+        # Apply Low-Rank Adaptation (LoRA)
+        peft_config = LoraConfig(
+            r=self.lora_r,
+            lora_alpha=self.lora_alpha,
+            target_modules=["q_proj", "v_proj"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type=TaskType.SEQ_2_SEQ_LM,
         )
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+
+        train_dataset, test_dataset = get_data(processor, feature_extractor)
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
@@ -105,15 +127,23 @@ class French_Speech_text:
             clean_label_ids, skip_special_tokens=True
         )
 
-        decoded_preds = [pred.strip() if pred.strip() else " " for pred in decoded_preds]
-        decoded_labels = [label.strip() if label.strip() else " " for label in decoded_labels]
+        decoded_preds = [
+            pred.strip() if pred.strip() else " " for pred in decoded_preds
+        ]
+        decoded_labels = [
+            label.strip() if label.strip() else " " for label in decoded_labels
+        ]
 
-        cer_score = cer_metric.compute(predictions=decoded_preds, references=decoded_labels)
-        wer_score = wer_metric.compute(predictions=decoded_preds, references=decoded_labels)
+        cer_score = cer_metric.compute(
+            predictions=decoded_preds, references=decoded_labels
+        )
+        wer_score = wer_metric.compute(
+            predictions=decoded_preds, references=decoded_labels
+        )
 
         return {"CER": cer_score, "WER": wer_score}
 
-    def train(self, output_dir: str = "./whisper-french-final"):
+    def train(self, output_dir: str = "./whisper-french-experiment"):
         is_cuda = torch.cuda.is_available()
         use_bf16 = is_cuda and torch.cuda.is_bf16_supported()
 
@@ -126,44 +156,44 @@ class French_Speech_text:
             gradient_checkpointing=True,
             dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
-            num_train_epochs=1,
-            learning_rate=1e-5,
+            num_train_epochs=3,
+            learning_rate=1e-3,  # LoRA requires higher LR than full fine-tuning
             weight_decay=0.01,
-            max_steps=400,
+            max_steps=300,
             eval_strategy="steps",
-            eval_steps=100,
+            eval_steps=50,
             save_strategy="steps",
-            save_steps=100,
+            save_steps=50,
             save_total_limit=1,
             load_best_model_at_end=True,
             metric_for_best_model="eval_CER",
             greater_is_better=False,
-            logging_steps=15,
+            logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
             remove_unused_columns=False,
             max_grad_norm=1.0,
-            warmup_steps=50,
+            warmup_steps=30,
             lr_scheduler_type="cosine",
             bf16=use_bf16,
             fp16=(is_cuda and not use_bf16),
             use_cpu=not is_cuda,
+            label_names=["labels"],
         )
 
         picklable_collator = partial(
-            data_collate,
-            processor=self.processor,
-            feature_extractor=self.feature_extractor
+        data_collate,
+        processor=self.processor,
+        feature_extractor=self.feature_extractor,
         )
 
         trainer = Seq2SeqTrainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=self.train_split,
-            eval_dataset=self.test_split,
-            data_collator=picklable_collator,
-            compute_metrics=self._compute_metrics,
-            # callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        model=self.model,
+        args=training_args,
+        train_dataset=self.train_split,
+        eval_dataset=self.test_split,
+        data_collator=picklable_collator,
+        compute_metrics=self._compute_metrics,
         )
 
         train_result = trainer.train()
