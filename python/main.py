@@ -13,15 +13,16 @@ hf_token = os.getenv("HF_TOKEN")
 def run_model(what_model:str):
     if what_model == "base":
         french_speech_transcription = French_Speech_text_base()
+        output = ""
         try:
-            french_speech_transcription.predict()
+            output = french_speech_transcription.predict()
             save_status = f"Successfully trained model setup: {french_speech_transcription.model_id}"
         except Exception as e:
             save_status = f"ERROR with model: {str(e)}"
-        output_dir = Path("./model/french_speech_transcription_base_output")
+        output_dir += Path("./model/french_speech_transcription_base_output")
         output_dir.mkdir(parents=True, exist_ok=True)
         with open(output_dir / "model_out.txt", "w", encoding="utf-8") as file:
-            file.write(save_status)
+            file.write(f"{save_status}\n{output}")
     elif what_model == "train":
         french_speech_transcription = French_Speech_text()
         try:

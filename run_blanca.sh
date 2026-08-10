@@ -17,6 +17,10 @@ export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
+export TMPDIR="/tmp"
+export TMP="/tmp"
+export TEMP="/tmp"
+
 export SCRATCH="${SCRATCH:-/scratch/alpine/$USER}"
 
 export HF_HOME="$SCRATCH/.cache/huggingface"
