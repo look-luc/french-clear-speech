@@ -79,17 +79,16 @@ class French_Speech_text:
             self.model_id, language="french", task="transcribe"
         )
         feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
+
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id, use_safetensors=True
-        )
+        ).to(self.device)
 
-        forced_decoder_ids = processor.get_decoder_prompt_ids(
-            language="french", task="transcribe"
-        )
-        model.generation_config.forced_decoder_ids = forced_decoder_ids
+        model.generation_config.forced_decoder_ids = None
+        model.generation_config.language = "french"
+        model.generation_config.task = "transcribe"
         model.generation_config.use_timestamps = False
 
-        # Apply Low-Rank Adaptation (LoRA)
         peft_config = LoraConfig(
             r=self.lora_r,
             lora_alpha=self.lora_alpha,
@@ -99,12 +98,14 @@ class French_Speech_text:
             task_type=TaskType.SEQ_2_SEQ_LM,
         )
         model = get_peft_model(model, peft_config)
+        model.enable_input_require_grads()
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
 
-        for dataset in [train_dataset, test_dataset]:
-            if hasattr(dataset, "column_names") and "input_ids" in dataset.column_names:
-                dataset = dataset.remove_columns(["input_ids"])
+        if hasattr(train_dataset, "column_names") and "input_ids" in train_dataset.column_names:
+            train_dataset = train_dataset.remove_columns(["input_ids"])
+        if hasattr(test_dataset, "column_names") and "input_ids" in test_dataset.column_names:
+            test_dataset = test_dataset.remove_columns(["input_ids"])
 
         return processor, feature_extractor, model, train_dataset, test_dataset
 
@@ -155,10 +156,10 @@ class French_Speech_text:
             per_device_train_batch_size=16,
             per_device_eval_batch_size=16,
             dataloader_pin_memory=is_cuda,
-            dataloader_prefetch_factor=2 if is_cuda else None,
+            dataloader_prefetch_factor=None,
             gradient_checkpointing=True,
-            dataloader_num_workers=4 if is_cuda else 1,
-            dataloader_persistent_workers=is_cuda,
+            dataloader_num_workers=0,
+            dataloader_persistent_workers=False,
             num_train_epochs=3,
             learning_rate=1e-3,
             weight_decay=0.01,
