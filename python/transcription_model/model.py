@@ -6,7 +6,7 @@ from pathlib import Path
 import evaluate
 import numpy as np
 import torch
-from peft import LoraConfig, TaskType, get_peft_model
+from peft import LoraConfig, get_peft_model
 from transformers import (
     AutoFeatureExtractor,
     AutoModelForSpeechSeq2Seq,
@@ -87,8 +87,8 @@ class French_Speech_text:
         model.generation_config.forced_decoder_ids = (
             processor.get_decoder_prompt_ids(language="french", task="transcribe")
         )
-        model.generation_config.language = "french"
-        model.generation_config.task = "transcribe"
+        model.generation_config.language = None
+        model.generation_config.task = None
         model.generation_config.use_timestamps = False
 
         peft_config = LoraConfig(
@@ -160,7 +160,6 @@ class French_Speech_text:
             num_train_epochs=3,
             learning_rate=1e-3,
             weight_decay=0.01,
-            max_steps=300,
             eval_strategy="steps",
             eval_steps=50,
             save_strategy="steps",
@@ -170,7 +169,7 @@ class French_Speech_text:
             metric_for_best_model="eval_CER",
             greater_is_better=False,
             logging_steps=10,
-            predict_with_generate=True,  # Set back to True
+            predict_with_generate=True,
             generation_max_length=200,
             generation_num_beams=1,
             remove_unused_columns=False,
@@ -196,6 +195,7 @@ class French_Speech_text:
             eval_dataset=self.test_split,
             data_collator=picklable_collator,
             compute_metrics=self._compute_metrics,
+            processing_class=self.processor.tokenizer,
         )
 
         train_result = trainer.train()
