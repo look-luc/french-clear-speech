@@ -19,7 +19,6 @@ def get_data(
     processor,
     feature_extractor,
     repo_id: str = "lookitsluc1/french_cleer_speech",
-    common_voice_repo: str = "facebook/multilingual_librispeech",
 ):
     local_praat_dir = Path(__file__).resolve().parents[2] / "praat" / "data"
 
@@ -50,21 +49,6 @@ def get_data(
 
     ds_train = ds_train.select_columns(["audio", "text"])
     ds_test = ds_test.select_columns(["audio", "text"])
-
-    cv_train = load_dataset(common_voice_repo, "french", split="train[:1000]")
-    cv_test = load_dataset(common_voice_repo, "french", split="test[:500]")
-
-    cv_train = cv_train.rename_column("transcript", "text")
-    cv_test = cv_test.rename_column("transcript", "text")
-
-    cv_train = cv_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
-    cv_test = cv_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
-
-    cv_train = cv_train.select_columns(["audio", "text"])
-    cv_test = cv_test.select_columns(["audio", "text"])
-
-    ds_train = concatenate_datasets([ds_train, cv_train])
-    ds_test = concatenate_datasets([ds_test, cv_test])
 
     def prepare_dataset(batch):
         audio_arrays = []
@@ -111,15 +95,13 @@ def get_data(
     processed_dataset_train = ds_train.map(
         prepare_dataset,
         batched=True,
-        batch_size=16,
-        num_proc=4,
+        batch_size=128,
         remove_columns=cast(list[str], ds_train.column_names)
     )
     processed_dataset_test = ds_test.map(
         prepare_dataset,
         batched=True,
-        batch_size=16,
-        num_proc=4,
+        batch_size=128,
         remove_columns=cast(list[str], ds_test.column_names)
     )
 
