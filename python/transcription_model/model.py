@@ -163,7 +163,7 @@ class French_Speech_text:
             eval_dataset=self.test_split,
             data_collator=picklable_collator,
             compute_metrics=self._compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+            # callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
         )
 
         train_result = trainer.train()
