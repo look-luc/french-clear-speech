@@ -99,17 +99,20 @@ class French_Speech_text:
         )
         model = get_peft_model(model, peft_config)
 
-        # raw_generate = model.generate
-        # def safe_generate(*args, **kwargs):
-        #     kwargs.pop("input_ids", None)
-        #     if args:
-        #         kwargs["input_features"] = args[0]
-        #         args = ()
-        #     return raw_generate(*args, **kwargs)
+        base_model = model.get_base_model() if hasattr(model, "get_base_model") else model.base_model
+        raw_base_generate = base_model.generate
 
-        # model.generate = safe_generate
+        def safe_generate(*args, **kwargs):
+            if "input_features" in kwargs:
+                kwargs.pop("input_ids", None)
 
-        model.print_trainable_parameters()
+            if "decoder_input_ids" in kwargs and "input_ids" in kwargs:
+                kwargs.pop("input_ids", None)
+
+            return raw_base_generate(*args, **kwargs)
+
+        base_model.generate = safe_generate
+        model.generate = safe_generate
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
 
@@ -182,7 +185,7 @@ class French_Speech_text:
             predict_with_generate=True,
             generation_max_length=200,
             generation_num_beams=2,
-            remove_unused_columns=False,
+            remove_unused_columns=True,
             max_grad_norm=1.0,
             warmup_steps=30,
             lr_scheduler_type="cosine",
