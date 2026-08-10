@@ -20,6 +20,8 @@ def run_model(what_model:str):
             save_status = f"ERROR with model: {str(e)}"
         output_dir = Path("./model/french_speech_transcription_base_output")
         output_dir.mkdir(parents=True, exist_ok=True)
+        with open(output_dir / "model_out.txt", "w", encoding="utf-8") as file:
+            file.write(save_status)
     elif what_model == "train":
         french_speech_transcription = French_Speech_text()
         try:
