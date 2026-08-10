@@ -1,10 +1,15 @@
 import sys
+import warnings
 from pathlib import Path
 
 import evaluate
 import torch
+import transformers
 from datasets import concatenate_datasets
 from transformers import AutoFeatureExtractor, AutoModelForSpeechSeq2Seq, AutoProcessor
+
+transformers.logging.set_verbosity_error()
+warnings.filterwarnings("ignore")
 
 python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
@@ -67,10 +72,10 @@ class French_Speech_text_base:
             self.model_id, language="french", task="transcribe"
         )
 
-        forced_decoder_ids = processor.get_decoder_prompt_ids(
-            language="french", task="transcribe"
-        )
-        model.generation_config.forced_decoder_ids = forced_decoder_ids
+        model.generation_config.language = "french"
+        model.generation_config.task = "transcribe"
+        model.generation_config.forced_decoder_ids = None
+        model.generation_config.max_length = None
 
         feature_extractor = AutoFeatureExtractor.from_pretrained(
             self.model_id, use_safetensors=True
