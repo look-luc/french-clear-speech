@@ -48,10 +48,15 @@ class French_Speech_text_base:
         ) = self._setup()
         self.level_tweak = level_tweak
 
-        self._train_iter = iter(concatenate_datasets([self.train_split, self.test_split]))
+        self.eval_dataset = concatenate_datasets(
+            [self.train_split, self.test_split]
+        )
 
     def _setup(self):
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id).to(self.device)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            self.model_id, use_safetensors=True
+        ).to(self.device)
+
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe"
         )
@@ -61,22 +66,24 @@ class French_Speech_text_base:
         )
         model.generation_config.forced_decoder_ids = forced_decoder_ids
 
-        feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            self.model_id, use_safetensors=True
+        )
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
 
         return processor, model, train_dataset, test_dataset
 
-    def predict(self):
+    def predict(self, max_samples:int|None = None):
         predictions = []
         references = []
-        try:
-            train_segment = next(self._train_iter)
-        except StopIteration:
-            self._train_iter = iter(self.train_split)
-            train_segment = next(self._train_iter)
 
-        for sample in simple_progress(train_segment, desc="Evaluating Base Model"):
+        dataset = self.eval_dataset
+        if max_samples is not None:
+            dataset = dataset.select(range(min(max_samples, len(dataset))))
+
+        # Iterate directly over the dataset samples
+        for sample in simple_progress(dataset, desc="Evaluating Base Model"):
             waveform = sample["audio"]["array"]
             sampling_rate = sample["audio"]["sampling_rate"]
 
@@ -99,7 +106,12 @@ class French_Speech_text_base:
             predictions.append(pred_text.strip())
             references.append(reference_text.strip())
 
-        cer_score = cer_metric.compute(predictions=predictions, references=references)
-        wer_score = wer_metric.compute(predictions=predictions, references=references)
+        print()  # Clear line after progress indicator
+        cer_score = cer_metric.compute(
+            predictions=predictions, references=references
+        )
+        wer_score = wer_metric.compute(
+            predictions=predictions, references=references
+        )
 
         return {"CER": cer_score, "WER": wer_score}
