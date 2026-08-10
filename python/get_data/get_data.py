@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from typing import cast
 
+import numpy as np
+import scipy.signal
 import soundfile as sf
 from datasets import (
     Audio,
@@ -41,7 +43,6 @@ def get_data(
     ds_train = ds_train.filter(lambda x: Path(x["audio"]).exists())
     ds_test = ds_test.filter(lambda x: Path(x["audio"]).exists())
 
-    # Disable automatic decoding to avoid torchcodec dependency
     ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
     ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
 
@@ -49,8 +50,17 @@ def get_data(
         audio_arrays = []
         for path in batch["audio"]:
             audio_path = path["path"] if isinstance(path, dict) else path
-            array, _ = sf.read(audio_path)
-            audio_arrays.append(array)
+            array, orig_sr = sf.read(audio_path)
+
+            # Convert multi-channel stereo to 1D mono
+            if array.ndim > 1:
+                array = array.mean(axis=-1)
+
+            # Polyphase resample to 16,000 Hz if original sample rate differs
+            if orig_sr != 16000:
+                array = scipy.signal.resample_poly(array, 16000, orig_sr)
+
+            audio_arrays.append(array.astype(np.float32))
 
         input_features = feature_extractor(
             audio_arrays,
@@ -58,10 +68,14 @@ def get_data(
         ).input_features
 
         cleaned_texts = []
-        pattern = r"\bl'\s+"
+        pattern_tags = r"\{.*?\}|\bsp\b"
+        pattern_l = r"\bl'\s+"
+        pattern_spaces = r"\s+"
+
         for text in batch["text"]:
-            text = text.replace("sp ", "").replace(" sp", "").replace("{ns}", "")
-            text = re.sub(pattern, "l'", text, flags=re.IGNORECASE)
+            text = re.sub(pattern_tags, "", text)
+            text = re.sub(pattern_l, "l'", text, flags=re.IGNORECASE)
+            text = re.sub(pattern_spaces, " ", text).strip()
             cleaned_texts.append(text)
 
         labels = processor.tokenizer(cleaned_texts).input_ids
