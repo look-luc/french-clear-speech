@@ -157,7 +157,7 @@ class French_Speech_text:
             dataloader_num_workers=4 if is_cuda else 1,
             dataloader_persistent_workers=is_cuda,
             num_train_epochs=3,
-            learning_rate=1e-3,  # LoRA requires higher LR than full fine-tuning
+            learning_rate=1e-3,
             weight_decay=0.01,
             max_steps=300,
             eval_strategy="steps",
@@ -171,7 +171,7 @@ class French_Speech_text:
             logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
-            remove_unused_columns=False,
+            remove_unused_columns=True,
             max_grad_norm=1.0,
             warmup_steps=30,
             lr_scheduler_type="cosine",
