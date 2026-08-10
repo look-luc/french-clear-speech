@@ -66,6 +66,7 @@ class French_Speech_text_base:
         self.dataloader = DataLoader(
             self.eval_dataset,
             batch_size=64,
+            collate_fn=self.collate_fn,
             shuffle=False,
             num_workers=2,
             pin_memory=True,
@@ -94,6 +95,32 @@ class French_Speech_text_base:
 
         return processor, model, train_dataset, test_dataset
 
+    def collate_fn(self, batch):
+        input_list = [item["input_features"] for item in batch]
+        label_list = [item["labels"] for item in batch]
+
+        padded_inputs = self.processor.feature_extractor.pad(
+            [{"input_features": f} for f in input_list],
+            return_tensors="pt"
+        )
+
+        padded_labels = self.processor.tokenizer.pad(
+            [{"input_ids": l} for l in label_list],
+            return_tensors="pt"
+        )
+
+        labels_tensor = padded_labels["input_ids"].masked_fill(
+            padded_labels.attention_mask.ne(1), -100
+        )
+
+        if all(labels_tensor[:, 0] == self.processor.tokenizer.bos_token_id):
+            labels_tensor = labels_tensor[:, 1:]
+
+        return {
+            "input_features": padded_inputs["input_features"],
+            "labels": labels_tensor
+        }
+
     def predict(self, max_samples: int | None = None):
         dataset = self.eval_dataset
         if max_samples is not None:
@@ -101,6 +128,7 @@ class French_Speech_text_base:
             dataloader = DataLoader(
                 dataset,
                 batch_size=64,
+                collate_fn=self.collate_fn,
                 shuffle=False,
                 num_workers=2,
                 pin_memory=True,
@@ -139,3 +167,4 @@ class French_Speech_text_base:
         )
 
         return {"CER": cer_score, "WER": wer_score}
+```[cite: 6]
