@@ -1,18 +1,10 @@
 import sys
-import warnings
 from pathlib import Path
 
 import evaluate
 import torch
-import transformers
-import transformers.modeling_utils
 from datasets import concatenate_datasets
 from transformers import AutoFeatureExtractor, AutoModelForSpeechSeq2Seq, AutoProcessor
-
-transformers.utils.import_utils.check_torch_load_is_safe = lambda: None
-
-transformers.logging.set_verbosity_error()
-warnings.filterwarnings("ignore")
 
 python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
@@ -67,23 +59,25 @@ class French_Speech_text_base:
         )
 
     def _setup(self):
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_id).to(self.device)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            self.model_id, use_safetensors=True
+        ).to(self.device)
+
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe"
         )
 
-        model.generation_config.forced_decoder_ids = (
-            processor.get_decoder_prompt_ids(language="fr", task="transcribe")
+        forced_decoder_ids = processor.get_decoder_prompt_ids(
+            language="french", task="transcribe"
         )
-        model.generation_config.max_length = None
-        model.generation_config.language = None
-        model.generation_config.task = None
+        model.generation_config.forced_decoder_ids = forced_decoder_ids
 
         feature_extractor = AutoFeatureExtractor.from_pretrained(
             self.model_id, use_safetensors=True
         )
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
+        model.generation_config.max_length = None
 
         return processor, model, train_dataset, test_dataset
 
