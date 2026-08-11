@@ -48,7 +48,6 @@ class French_Speech_text:
     def __init__(
         self,
         model_id: str = "bofenghuang/whisper-medium-french",
-        level_tweak: float = 0.0,
         device: str = "",
         lora_r: int = 8,
         lora_alpha: int = 16,
@@ -211,6 +210,3 @@ class French_Speech_text:
         self.model.generation_config.save_pretrained(output_dir)
 
         return train_result
-
-    def transcribe(self):
-        pass
