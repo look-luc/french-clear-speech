@@ -57,6 +57,8 @@ class French_Speech_text_base:
             self.train_split,
             self.test_split,
         ) = self._setup()
+
+        self.normalizer = self.processor.tokenizer.basic_normalize
         self.level_tweak = level_tweak
 
         self.eval_dataset = concatenate_datasets(
@@ -152,12 +154,16 @@ class French_Speech_text_base:
                 generated_ids, skip_special_tokens=True
             )
 
+            pred_texts = [self.normalizer(p) for p in pred_texts]
+
             valid_labels = labels.masked_fill(
                 labels == -100, self.processor.tokenizer.pad_token_id
             )
             ref_texts = self.processor.batch_decode(
                 valid_labels, skip_special_tokens=True
             )
+
+            ref_texts = [self.normalizer(r) for r in ref_texts]
 
             predictions.extend([p.strip() for p in pred_texts])
             references.extend([r.strip() for r in ref_texts])
