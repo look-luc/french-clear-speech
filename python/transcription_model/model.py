@@ -94,10 +94,10 @@ class French_Speech_text:
         peft_config = LoraConfig(
             r=self.lora_r,
             lora_alpha=self.lora_alpha,
-            target_modules=["q_proj", "v_proj"],
+            target_modules=["q_proj", "k_proj", "v_proj", "out_proj", "fc1", "fc2"],
             lora_dropout=0.05,
             bias="none",
-            task_type="SEQ_2_SEQ_LM",
+            task_type=None,
         )
         model = get_peft_model(model, peft_config)
         model.enable_input_require_grads()
@@ -157,9 +157,10 @@ class French_Speech_text:
             gradient_checkpointing=True,
             dataloader_num_workers=0,
             dataloader_persistent_workers=False,
+            # label_smoothing_factor=0.05,
             num_train_epochs=3,
-            label_smoothing_factor=0.1,
-            learning_rate=1e-4,
+            learning_rate=2e-4,
+            warmup_ratio=0.1,
             weight_decay=0.05,
             eval_strategy="steps",
             eval_steps=861//2,
@@ -172,7 +173,7 @@ class French_Speech_text:
             logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
-            generation_num_beams=1,
+            generation_num_beams=5,
             remove_unused_columns=False,
             max_grad_norm=1.0,
             warmup_steps=30,
