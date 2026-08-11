@@ -6,25 +6,15 @@
     <title>My jsPsych Experiment</title>
     <!-- jsPsych Core CSS -->
     <link href="https://unpkg.com" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="index.css" />
     <!-- jsPsych Core Library -->
     <script src="https://unpkg.com"></script>
     <!-- Example Plugin (HTML Keyboard Response) -->
     <script src="https://unpkg.com"></script>
+    <!--own external files-->
+    <link rel="stylesheet" href="index.css" />
+    <script src="index.js" defer></script>
 </head>
 <body>
-    <script>
-        // Initialize jsPsych
-        const jsPsych = initJsPsych();
 
-        // Define a simple trial
-        const hello_trial = {
-            type: jsPsychHtmlKeyboardResponse,
-            stimulus: '<p>Hello! Press any key to finish.</p>'
-        };
-
-        // Run the experiment
-        jsPsych.run([hello_trial]);
-    </script>
 </body>
 </html>
