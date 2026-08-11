@@ -97,7 +97,7 @@ class French_Speech_text:
             target_modules=["q_proj", "v_proj"],
             lora_dropout=0.05,
             bias="none",
-            task_type=None,
+            task_type="SEQ_2_SEQ_LM",
         )
         model = get_peft_model(model, peft_config)
         model.enable_input_require_grads()
@@ -158,8 +158,9 @@ class French_Speech_text:
             dataloader_num_workers=0,
             dataloader_persistent_workers=False,
             num_train_epochs=3,
-            learning_rate=1e-3,
-            weight_decay=0.01,
+            label_smoothing_factor=0.1,
+            learning_rate=1e-4,
+            weight_decay=0.05,
             eval_strategy="steps",
             eval_steps=861//2,
             save_strategy="steps",
