@@ -48,8 +48,8 @@ class French_Clear_Speech_Model:
             peft_model = PeftModel.from_pretrained(model, self.path_to_model)
             peft_model = peft_model.merge_and_unload()
             peft_model.enable_input_require_grads()
-            return processor, feature_extractor, peft_model
 
+            return processor, feature_extractor, peft_model
         else:
             return processor, feature_extractor, model
 

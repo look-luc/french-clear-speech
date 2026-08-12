@@ -1,11 +1,18 @@
-// Initialize jsPsych
-const jsPsych = initJsPsych();
+var jsPsych = initJsPsych({
+  on_finish: function () {
+    jsPsych.data.displayData();
+  },
+});
 
-// Define a simple trial
-const hello_trial = {
+/* create timeline */
+var timeline = [];
+
+/* define welcome message trial */
+var welcome = {
   type: jsPsychHtmlKeyboardResponse,
-  stimulus: "<p>Hello! Press any key to finish.</p>",
+  stimulus: "Welcome to the experiment. Press any key to begin.",
 };
+timeline.push(welcome);
 
-// Run the experiment
-jsPsych.run([hello_trial]);
+/* start the experiment */
+jsPsych.run(timeline);
