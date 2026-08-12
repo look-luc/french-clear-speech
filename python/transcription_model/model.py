@@ -71,7 +71,8 @@ class French_Speech_text:
             self.train_split,
             self.test_split,
         ) = self._setup()
-        self.level_tweak = level_tweak
+
+        self.normalizer = self.processor.tokenizer.basic_normalize
 
     def _setup(self):
         processor = AutoProcessor.from_pretrained(
@@ -83,11 +84,12 @@ class French_Speech_text:
             self.model_id, use_safetensors=True
         ).to(self.device)
 
-        model.generation_config.forced_decoder_ids = (
-            processor.get_decoder_prompt_ids(language="french", task="transcribe")
-        )
-        model.generation_config.language = None
-        model.generation_config.task = None
+        model.config.use_cache = False
+
+        model.generation_config.forced_decoder_ids = None
+        model.generation_config.suppress_tokens = []
+        model.generation_config.language = "french"
+        model.generation_config.task = "transcribe"
         model.generation_config.use_timestamps = False
 
         peft_config = LoraConfig(
@@ -127,6 +129,9 @@ class French_Speech_text:
             clean_label_ids, skip_special_tokens=True
         )
 
+        decoded_preds = [self.normalizer(p) for p in decoded_preds]
+        decoded_labels = [self.normalizer(l) for l in decoded_labels]
+
         decoded_preds = [
             pred.strip() if pred.strip() else " " for pred in decoded_preds
         ]
@@ -150,21 +155,19 @@ class French_Speech_text:
         training_args = Seq2SeqTrainingArguments(
             output_dir="./results",
             per_device_train_batch_size=16,
+            gradient_accumulation_steps=2,
             per_device_eval_batch_size=64,
             dataloader_pin_memory=is_cuda,
             dataloader_prefetch_factor=None,
             gradient_checkpointing=True,
             dataloader_num_workers=0,
             dataloader_persistent_workers=False,
-            # label_smoothing_factor=0.05,
             num_train_epochs=2,
             learning_rate=2e-4,
             warmup_ratio=0.1,
             weight_decay=0.05,
-            eval_strategy="steps",
-            eval_steps=287,
-            save_strategy="steps",
-            save_steps=287,
+            eval_strategy="epoch",
+            save_strategy="epoch",
             save_total_limit=1,
             load_best_model_at_end=True,
             metric_for_best_model="eval_CER",
@@ -172,10 +175,9 @@ class French_Speech_text:
             logging_steps=10,
             predict_with_generate=True,
             generation_max_length=200,
-            generation_num_beams=5//2,
+            generation_num_beams=1,
             remove_unused_columns=False,
             max_grad_norm=1.0,
-            warmup_steps=30,
             lr_scheduler_type="cosine",
             bf16=use_bf16,
             fp16=(is_cuda and not use_bf16),
@@ -210,3 +212,6 @@ class French_Speech_text:
         self.model.generation_config.save_pretrained(output_dir)
 
         return train_result
+
+    def transcribe(self):
+        pass
