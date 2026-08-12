@@ -28,7 +28,7 @@ class French_Clear_Speech_Model:
         self.path_to_model = path_to_model
         self.processor, self.feature_extractor, self.model = self._setup()
 
-    def _setup(self):
+    def _setup(self, is_fine_tuned:bool=False):
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe"
         )
@@ -44,15 +44,14 @@ class French_Clear_Speech_Model:
         model.generation_config.language = None
         model.generation_config.task = None
         model.generation_config.use_timestamps = False
-
-        try:
+        if is_fine_tuned:
             peft_model = PeftModel.from_pretrained(model, self.path_to_model)
             peft_model = peft_model.merge_and_unload()
             peft_model.enable_input_require_grads()
-        except Exception:
-            peft_model = model
+            return processor, feature_extractor, peft_model
 
-        return processor, feature_extractor, peft_model
+        else:
+            return processor, feature_extractor, model
 
     def _apply_acoustic_degradation(
         self,
