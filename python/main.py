@@ -35,8 +35,6 @@ def run_model(what_model:str):
         output_dir.mkdir(parents=True, exist_ok=True)
         with open(output_dir / "model_out.txt", "w", encoding="utf-8") as file:
             file.write(save_status)
-    elif what_model == "transcribe":
-        pass
     elif what_model == "graph":
         metrics_graph()
     else:
