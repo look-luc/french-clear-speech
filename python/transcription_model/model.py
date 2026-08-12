@@ -86,10 +86,11 @@ class French_Speech_text:
 
         model.config.use_cache = False
 
-        model.generation_config.forced_decoder_ids = None
-        model.generation_config.suppress_tokens = []
-        model.generation_config.language = "french"
-        model.generation_config.task = "transcribe"
+        model.generation_config.forced_decoder_ids = (
+            processor.get_decoder_prompt_ids(language="french", task="transcribe")
+        )
+        model.generation_config.language = None
+        model.generation_config.task = None
         model.generation_config.use_timestamps = False
 
         peft_config = LoraConfig(
