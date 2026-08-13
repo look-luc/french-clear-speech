@@ -1,0 +1,113 @@
+\begin{thebibliography}{14}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ardila et~al.(2020)Ardila, Branson, Davis, Henretty, Kohler, Meyer,
+  Morais, Saunders, Tyers, and Weber]{ardila2020common}
+Rosana Ardila, Megan Branson, Tim Davis, Michael Henretty, Michael Kohler, Josh
+  Meyer, Reuben Morais, Lindsay Saunders, Francis~M. Tyers, and Gregor Weber.
+\newblock Common voice: A massively-multilingual speech corpus.
+\newblock In \emph{Proceedings of the 12th Language Resources and Evaluation
+  Conference}, pages 4218--4222, 2020.
+
+\bibitem[Conneau et~al.(2022)Conneau, Ma, Khanuja, Zhang, Axelrod, Dalmia,
+  Riesa, Rivera, and Bapna]{fleurs2022arxiv}
+Alexis Conneau, Min Ma, Simran Khanuja, Yu~Zhang, Vera Axelrod, Siddharth
+  Dalmia, Jason Riesa, Clara Rivera, and Ankur Bapna.
+\newblock Fleurs: Few-shot learning evaluation of universal representations of
+  speech.
+\newblock \emph{arXiv preprint arXiv:2205.12446}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2205.12446}.
+
+\bibitem[{GeeksforGeeks}(2023)]{geeksforgeeks_peft}
+{GeeksforGeeks}.
+\newblock What is parameter-efficient fine-tuning ({PEFT})?
+\newblock
+  https://www.geeksforgeeks.org/artificial-intelligence/what-is-parameter-efficient-fine-tuning-peft/,
+  2023.
+\newblock Accessed: 2026-08-12.
+
+\bibitem[gigant(2022)]{gigant2022african-accented-french}
+gigant.
+\newblock African accented french dataset, 2022.
+\newblock URL
+  \url{https://huggingface.co/datasets/gigant/african\_accented\_french}.
+
+\bibitem[Huang(2022)]{huang2022whisper-medium-french}
+Bofeng Huang.
+\newblock Fine-tuned whisper-medium model for asr in {F}rench, 2022.
+\newblock URL \url{https://huggingface.co/bofenghuang/whisper-medium-french}.
+
+\bibitem[{Hugging Face}(2024{\natexlab{a}})]{hf-peft-lora-docs-v020}
+{Hugging Face}.
+\newblock {PEFT} documentation: {LoRA} usage ({v0.20.0}).
+\newblock
+  \url{https://huggingface.co/docs/peft/v0.20.0/en/package\_reference/lora\#usage},
+  2024{\natexlab{a}}.
+\newblock Accessed: 2026-08-12.
+
+\bibitem[{Hugging Face}(2024{\natexlab{b}})]{hf_transformers_asr_docs}
+{Hugging Face}.
+\newblock Automatic speech recognition task guide -- transformers
+  documentation.
+\newblock \url{https://huggingface.co/docs/transformers/en/tasks/asr},
+  2024{\natexlab{b}}.
+\newblock Accessed: 2026-08-12.
+
+\bibitem[Kolobov et~al.(2021)Kolobov, Okhapkina, Olga~Omelchishina, Bedyakin,
+  Moshkin, Menshikov, and Mikhaylovskiy]{mediaspeech2021}
+Rostislav Kolobov, Olga Okhapkina, Andrey~Platunov Olga~Omelchishina, Roman
+  Bedyakin, Vyacheslav Moshkin, Dmitry Menshikov, and Nikolay Mikhaylovskiy.
+\newblock Mediaspeech: Multilanguage asr benchmark and dataset, 2021.
+
+\bibitem[lookitsluc1(2024)]{lookitsluc1-french-cleer-speech}
+lookitsluc1.
+\newblock French cleer speech.
+\newblock https://huggingface.co/datasets/lookitsluc1/french\_cleer\_speech,
+  2024.
+
+\bibitem[Pratap et~al.(2020)Pratap, Xu, Sriram, Synnaeve, and
+  Collobert]{Pratap2020MLSAL}
+Vineel Pratap, Qiantong Xu, Anuroop Sriram, Gabriel Synnaeve, and Ronan
+  Collobert.
+\newblock Mls: A large-scale multilingual dataset for speech research.
+\newblock \emph{ArXiv}, abs/2012.03411, 2020.
+
+\bibitem[Radford et~al.(2022)Radford, Kim, Xu, Brockman, McLeavey, and
+  Sutskever]{radford2022whisper}
+Alec Radford, Jong~Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and
+  Ilya Sutskever.
+\newblock Robust speech recognition via large-scale weak supervision, 2022.
+\newblock URL \url{https://arxiv.org/abs/2212.04356}.
+
+\bibitem[Radford et~al.(2023)Radford, Kim, Xu, Brockman, McLeavey, and
+  Sutskever]{radford2023robust}
+Alec Radford, Jong~Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and
+  Ilya Sutskever.
+\newblock Robust speech recognition via large-scale weak supervision.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  28492--28518. PMLR, 2023.
+
+\bibitem[Salesky et~al.(2021)Salesky, Wiesner, Bremerman, Cattoni, Negri,
+  Turchi, Oard, and Post]{salesky2021mtedx}
+Elizabeth Salesky, Matthew Wiesner, Jacob Bremerman, Roldano Cattoni, Matteo
+  Negri, Marco Turchi, Douglas~W. Oard, and Matt Post.
+\newblock Multilingual tedx corpus for speech recognition and translation.
+\newblock In \emph{Proceedings of Interspeech}, 2021.
+
+\bibitem[Wang et~al.(2021)Wang, Riviere, Lee, Wu, Talnikar, Haziza, Williamson,
+  Pino, and Dupoux]{wang-etal-2021-voxpopuli}
+Changhan Wang, Morgane Riviere, Ann Lee, Anne Wu, Chaitanya Talnikar, Daniel
+  Haziza, Mary Williamson, Juan Pino, and Emmanuel Dupoux.
+\newblock {V}ox{P}opuli: A large-scale multilingual speech corpus for
+  representation learning, semi-supervised learning and interpretation.
+\newblock In \emph{Proceedings of the 59th Annual Meeting of the Association
+  for Computational Linguistics and the 11th International Joint Conference on
+  Natural Language Processing (Volume 1: Long Papers)}, pages 993--1003,
+  Online, August 2021. Association for Computational Linguistics.
+\newblock URL \url{https://aclanthology.org/2021.acl-long.80}.
+
+\end{thebibliography}

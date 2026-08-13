@@ -1,0 +1,91 @@
+\documentclass[12pt]{article}
+\usepackage{natbib}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{setspace}
+
+\title{Can a model transcribe French speech?\\A documentation of the model}
+\date{}
+\author{}
+
+\begin{document}
+    \singlespacing
+    \setlength{\parindent}{36pt}
+    \maketitle
+    \section{Background}
+    To have feedback for participants in an experiment about clarity, having a
+    model to be as the listener would be a logical next step. Instead of training
+    a model from scratch or even taking a speech to text model and fine tuning it,
+    I figured that there has to be a model that was already trained on French
+    speech.
+
+    \section{Terminology}
+    \label{sec:term} I used the term fine tuned, what is it actually. Fine
+    tuning a pre-existing model is just taking a model of choice and further
+    training it on a selected dataset. This makes the model be more of an expert in
+    a certain portion of datatypes. So for example, the model I used that would be
+    utilized is the \citet{huang2022whisper-medium-french} whisper-medium model
+    for ASR (automatic speech recognition) in French model which uses OpenAI's
+    medium sized whisper model \citep{radford2022whisper,radford2023robust}. The
+    French ASR has been trained ``on a composite dataset comprising of over 2200
+    hours of French speech audio, using the train and the validation splits of Common
+    Voice 11.0, Multilingual LibriSpeech, Voxpopuli, Fleurs, Multilingual TEDx,
+    MediaSpeech, and African Accented French" \citep{ardila2020common, Pratap2020MLSAL, wang-etal-2021-voxpopuli, fleurs2022arxiv, salesky2021mtedx, mediaspeech2021, gigant2022african-accented-french}.
+
+    ASR models are a type of model that does speech to text transcription. ASR
+    models ``converts a speech signal to text, mapping a sequence of audio inputs
+    to text outputs" \citep{hf_transformers_asr_docs}.
+
+    \section{Methodology}
+    As mentioned in section~\ref{sec:term}, I used the whisper-medium model for
+    ASR in French \citep{huang2022whisper-medium-french}. This is already a
+    powerful model by itself with the amount of hours it was trained on. The model
+    has $769$ million parameters to tweak which will come in handy later on.
+
+    \subsection{Data}
+    Since we have data that was already collected and have the actual transcription,
+    I decided to fine tune the model further with the data. To make sure that the
+    model actually learns to not include any of the annotation anomolies like \{np\},
+    \{cough\}, \{sp\}, etc, I made sure to remove these. I noticed that if there
+    was some discrempacies with ce and le/la when comes before a vowel so I
+    removed the space that would have been put when extracting from the textgrid.
+    The data can be seen here: \citet{lookitsluc1-french-cleer-speech}. I split
+    the data $80\%$ to $20\%$. The training split has around 4.59 thousand elements
+    and the test split has around 1.15 thousand elements.
+
+    \subsection{Fine tuned training}
+    \subsubsection{Setup}
+    To make the model ready to be fine-tuned, there are some elements that were
+    added on top to get the metrics to a good point. Since whisper-medium-french \citep{huang2022whisper-medium-french}
+    has $769$ million parameters, I did not want to tweak the parameters that gives
+    the power of the whisper model to do the speech-to-text task. To only target
+    the parameters that would best to tweak in my favor, I added a PEFT (Parameter-Efficient
+    Fine-Tuning) via LoRA (Low-Rank Adaptation) wrapper on top of the base model (whisper-medium-french
+    \citep{huang2022whisper-medium-french}).
+
+    LoRA freezes base model’s weights and adds an adapter on top that runs along
+    side model and is task specific. PEFT is a way to lower computation times and
+    tunes a small subset of parameters for the task. PEFT takes additional
+    parameters and changes and tweaks them. Adds small, trainable modules or
+    updates a limited set of parameters instead of the full model; Learns task-specific
+    patterns without affecting the core pre-trained model; Maintains efficiency
+    while enabling easy customization using techniques like adapters, LoRA, and
+    prompt tuning \citep{geeksforgeeks_peft}.
+
+    To setup the LoRA and PEFT for the whisper-medium-french \citep{huang2022whisper-medium-french},
+    there are some parameters I explicitly set. The first is rank (r), which is the
+    amount of parameters to be trained so ''a higher rank means the model has more
+    parameters to train, but it also means the model has more learning capacity,"
+    \citep{hf-peft-lora-docs-v020}. In the model I have set the rank to $8$. The lora\_alpha
+    is the scaling factor which I put as 16. The bias is ``whether none, all or
+    only the LoRA bias parameters should be trained" \citep{hf-peft-lora-docs-v020}
+    which I set to ``none''.
+
+    \subsubsection{Worry about fine-tuning the model}
+
+    \bibliographystyle{plainnat}
+    \bibliography{custom}
+\end{document}
