@@ -22,42 +22,36 @@ if (consentGranted !== "true") {
   };
   timeline.push(init_mic);
 
+  var timerInterval;
+
   var test_mic = {
     type: jsPsychHtmlAudioResponse,
     stimulus: `
         <div class="recording-container">
           <span class="rec-dot"></span>
-          <span class="rec-text">Recording <p id="record"></p></span>
+          <span class="rec-text">Recording: </span>
+          <span id="timer-display" class="timer">5 seconds</span>
         </div>
         <p>Please say <strong>"test"</strong> to check your microphone.</p>
       `,
     recording_duration: 5000,
     allow_playback: true,
+    on_load: function () {
+      var secondsLeft = 5;
+      timerInterval = setInterval(function () {
+        secondsLeft -= 1;
+        var timerDisplay = document.getElementById("timer-display");
+        if (timerDisplay && secondsLeft >= 0) {
+          timerDisplay.innerText = secondsLeft + " seconds";
+        } else {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    },
+    on_finish: function () {
+      clearInterval(timerInterval);
+    },
   };
-
-  var countDownDate = new Date();
-  countDownDate.setSeconds(currentTime.getSeconds() + 5);
-  var x = setInterval(function () {
-    var now = new Date().getTime();
-
-    var distance = countDownDate - now;
-
-    var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    var hours = Math.floor(
-      (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-    );
-    var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-    document.getElementById("record").innerHTML =
-      days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
-
-    if (distance < 0) {
-      clearInterval(x);
-      document.getElementById("record").innerHTML = "EXPIRED";
-    }
-  }, 1000);
-
   timeline.push(test_mic);
 
   var welcome = {

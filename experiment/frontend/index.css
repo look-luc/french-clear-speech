@@ -37,3 +37,8 @@
     opacity: 1;
   }
 }
+.timer{
+    text-align: center;
+    font-size: 14px;
+    margin-top: 0px;
+}
