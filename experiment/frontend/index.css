@@ -42,3 +42,12 @@
     font-size: 14px;
     margin-top: 0px;
 }
+
+.welcome-eng{
+    padding: 10px;
+    align-items: center;
+    margin: 40px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
