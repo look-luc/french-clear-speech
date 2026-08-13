@@ -141,6 +141,57 @@
     15.5\%. This is good for what the experiment we are doing.
 
     \subsection{Fine tuned model}
+    The metrics of the fine tuned model show promising results. tables~\ref{fig:CER}
+    to \ref{fig:eval} shows the metrics. For CER and WER, there are only two points,
+    the point furthest right is the one we would look at. The reason we only see two
+    is because I set the model to save the best model. For the losses and the
+    normalization, we see the graph take a steady decline towards 0. For the losses,
+    this could mean that it is either overfitting or memorizing but given the
+    CER and WER, that could be ruled out.
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/CER_score.png
+        }
+        \caption{CER for fine tuned}
+        \label{fig:CER}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/WER_score.png
+        }
+        \caption{WER for fine tuned}
+        \label{fig:WER}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/gradient_normalization.png
+        }
+        \caption{Gradient normalization for fine tuned}
+        \label{fig:Gradient}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/training_loss.png
+        }
+        \caption{Training loss for fine tuned}
+        \label{fig:Training}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/evaluation_loss.png
+        }
+        \caption{Evaluation loss for fine tuned}
+        \label{fig:eval}
+    \end{figure}
 
     \bibliographystyle{plainnat}
     \bibliography{custom}

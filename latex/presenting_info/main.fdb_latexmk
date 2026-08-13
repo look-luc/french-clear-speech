@@ -1,13 +1,18 @@
 # Fdb version 4
-["bibtex main"] 1786588050.64392 "main.aux" "main.bbl" "main" 1786588052.31998 0
+["bibtex main"] 1786588998.98976 "main.aux" "main.bbl" "main" 1786589000.33546 0
   "./custom.bib" 1786588049.57241 7261 4689199c00114e8bfbd73852fb1e498b ""
   "/usr/local/texlive/2025/texmf-dist/bibtex/bst/natbib/plainnat.bst" 1233624470 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "main.aux" 1786588051.94318 3897 93dcf0cd52abaf9b7680ab8887e338e4 "pdflatex"
+  "main.aux" 1786588999.99301 4759 ed09d3ca59b6d9a747c1b568f792daf0 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1786588050.82565 "main.tex" "main.pdf" "main" 1786588052.32021 0
+["pdflatex"] 1786588999.14034 "main.tex" "main.pdf" "main" 1786589000.33567 0
+  "../../results/log_288/graphs/CER_score.png" 1786500208.29098 25766 de87a803163c84e918b5a3a6035968e2 ""
+  "../../results/log_288/graphs/WER_score.png" 1786500208.35196 27587 0b2f76e3c970be83fb289851c3fde03b ""
+  "../../results/log_288/graphs/evaluation_loss.png" 1786500208.22943 31793 6eca388baa11c58e6fa7512d3dc00844 ""
+  "../../results/log_288/graphs/gradient_normalization.png" 1786500208.16371 29081 0c74d37d9afb49648dfa9677efca8a43 ""
+  "../../results/log_288/graphs/training_loss.png" 1786500208.1004 21484 451a904aea331d1b18cf7c9d641cec33 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm" 1136768653 2240 eb56c13537f4d8a0bd3fafc25572b1bd ""
@@ -73,9 +78,9 @@
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1769366432 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1741450574 3345740 46b66fdb0378f7bf5921b5eabf1762b8 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
-  "main.aux" 1786588051.94318 3897 93dcf0cd52abaf9b7680ab8887e338e4 "pdflatex"
-  "main.bbl" 1786588050.82268 6807 6b376398bd3fd74e019ad8d3a23a0064 "bibtex main"
-  "main.tex" 1786588011.58696 8569 001612aca677e5451d19db0709870248 ""
+  "main.aux" 1786588999.99301 4759 ed09d3ca59b6d9a747c1b568f792daf0 "pdflatex"
+  "main.bbl" 1786588999.1371 6807 6b376398bd3fd74e019ad8d3a23a0064 "bibtex main"
+  "main.tex" 1786588996.5424 10351 66d049cad94119fc8c37200ee6e98ff7 ""
   (generated)
   "main.aux"
   "main.log"

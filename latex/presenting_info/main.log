@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  12 AUG 2026 20:27
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  12 AUG 2026 20:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -206,12 +206,47 @@ LaTeX Font Info:    Font shape `OMS/phv/m/n' in size <12> not available
 {/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
 al/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc}]
 
-[2] (./main.bbl
-LaTeX Font Info:    Font shape `OT1/phv/m/it' in size <12> not available
-(Font)              Font shape `OT1/phv/m/sl' tried instead on input line 14.
+[2]
+<../../results/log_288/graphs/CER_score.png, id=16, 462.528pt x 346.896pt>
+File: ../../results/log_288/graphs/CER_score.png Graphic file (type png)
+<use ../../results/log_288/graphs/CER_score.png>
+Package pdftex.def Info: ../../results/log_288/graphs/CER_score.png  used on in
+put line 155.
+(pdftex.def)             Requested size: 375.80544pt x 281.86818pt.
 
 
 [3]
+<../../results/log_288/graphs/WER_score.png, id=21, 462.528pt x 346.896pt>
+File: ../../results/log_288/graphs/WER_score.png Graphic file (type png)
+<use ../../results/log_288/graphs/WER_score.png>
+Package pdftex.def Info: ../../results/log_288/graphs/WER_score.png  used on in
+put line 164.
+(pdftex.def)             Requested size: 375.80544pt x 281.86818pt.
+<../../results/log_288/graphs/gradient_normalization.png, id=22, 462.528pt x 34
+6.896pt>
+File: ../../results/log_288/graphs/gradient_normalization.png Graphic file (typ
+e png)
+<use ../../results/log_288/graphs/gradient_normalization.png>
+Package pdftex.def Info: ../../results/log_288/graphs/gradient_normalization.pn
+g  used on input line 173.
+(pdftex.def)             Requested size: 375.80544pt x 281.86818pt.
+<../../results/log_288/graphs/training_loss.png, id=23, 462.528pt x 346.896pt>
+File: ../../results/log_288/graphs/training_loss.png Graphic file (type png)
+<use ../../results/log_288/graphs/training_loss.png>
+Package pdftex.def Info: ../../results/log_288/graphs/training_loss.png  used o
+n input line 182.
+(pdftex.def)             Requested size: 375.80544pt x 281.86818pt.
+<../../results/log_288/graphs/evaluation_loss.png, id=24, 462.528pt x 346.896pt
+>
+File: ../../results/log_288/graphs/evaluation_loss.png Graphic file (type png)
+<use ../../results/log_288/graphs/evaluation_loss.png>
+Package pdftex.def Info: ../../results/log_288/graphs/evaluation_loss.png  used
+ on input line 191.
+(pdftex.def)             Requested size: 375.80544pt x 281.86818pt.
+ (./main.bbl
+LaTeX Font Info:    Font shape `OT1/phv/m/it' in size <12> not available
+(Font)              Font shape `OT1/phv/m/sl' tried instead on input line 14.
+
 Underfull \hbox (badness 10000) in paragraph at lines 26--32
 []\OT1/phv/m/n/12 GeeksforGeeks.  What is parameter-efficient fine-tuning (PEFT
 )?
@@ -224,6 +259,28 @@ arameter-efficient-fine-
  []
 
 
+
+[4 <../../results/log_288/graphs/CER_score.png>]
+
+LaTeX Warning: Text page 5 contains only floats.
+
+
+Overfull \vbox (3.64629pt too high) has occurred while \output is active []
+
+
+
+[5 <../../results/log_288/graphs/WER_score.png> <../../results/log_288/graphs/g
+radient_normalization.png>]
+
+LaTeX Warning: Text page 6 contains only floats.
+
+
+Overfull \vbox (3.64629pt too high) has occurred while \output is active []
+
+
+
+[6 <../../results/log_288/graphs/training_loss.png> <../../results/log_288/grap
+hs/evaluation_loss.png>]
 Underfull \hbox (badness 10000) in paragraph at lines 34--38
 []\OT1/phv/m/n/12 gigant.  African ac-cented french dataset, 2022.  URL
  []
@@ -271,7 +328,7 @@ Underfull \hbox (badness 4378) in paragraph at lines 92--99
 
 
 
-[4]
+[7]
 Underfull \hbox (badness 5175) in paragraph at lines 136--143
 []\OT1/phv/m/n/12 Tamanna.  De-ci-pher-ing ac-cu-racy: Eval-u-a-tion met-rics i
 n NLP and OCR --
@@ -291,20 +348,20 @@ on-metrics-in-
 
 )
 
-[5] (./main.aux)
+[8] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 2983 strings out of 473190
- 45059 string characters out of 5715801
- 439898 words of memory out of 5000000
- 26214 multiletter control sequences out of 15000+600000
+ 3035 strings out of 473190
+ 47643 string characters out of 5715801
+ 440008 words of memory out of 5000000
+ 26266 multiletter control sequences out of 15000+600000
  577767 words of font info for 80 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,5n,65p,248b,249s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,7n,65p,248b,255s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><
 /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></us
@@ -314,10 +371,10 @@ ocal/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/tex
 live/2025/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></usr/local/texlive/20
 25/texmf-dist/fonts/type1/urw/helvetic/uhvro8a.pfb>
-Output written on main.pdf (5 pages, 94596 bytes).
+Output written on main.pdf (8 pages, 209284 bytes).
 PDF statistics:
- 66 PDF objects out of 1000 (max. 8388607)
- 40 compressed objects within 1 object stream
+ 88 PDF objects out of 1000 (max. 8388607)
+ 49 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 
