@@ -57,7 +57,7 @@
     and the test split has around 1.15 thousand elements.
 
     \subsection{Fine tuned training}
-    \subsubsection{Setup}
+    \subsubsection{LoRA \& PEFT setup}
     To make the model ready to be fine-tuned, there are some elements that were
     added on top to get the metrics to a good point. Since whisper-medium-french \citep{huang2022whisper-medium-french}
     has $769$ million parameters, I did not want to tweak the parameters that gives
@@ -80,11 +80,67 @@
     amount of parameters to be trained so ''a higher rank means the model has more
     parameters to train, but it also means the model has more learning capacity,"
     \citep{hf-peft-lora-docs-v020}. In the model I have set the rank to $8$. The lora\_alpha
-    is the scaling factor which I put as 16. The bias is ``whether none, all or
-    only the LoRA bias parameters should be trained" \citep{hf-peft-lora-docs-v020}
-    which I set to ``none''.
+    is the scaling factor which controls how intense the adapter weights affect the
+    base model; I put as 16. The bias is ``whether none, all or only the LoRA bias
+    parameters should be trained" \citep{hf-peft-lora-docs-v020} which I set to ``none''.
+    The target\_modules are there to let LoRA/PEFT what to focus on when LoRA
+    updates the matrices \citep{hf_peft_lora_conceptual}. Task\_type is what the
+    model should be trained for, since I already specified in the loading of the model
+    to be transcribe, I set this to none. Finally lora\_dropout randomly turns off
+    a set percentage of adapter weights during training.
+
+    \subsubsection{Training setup}
+    When it comes to the training arguments, the basic thing to elaborate is
+    that the model ran for 2 epochs, with a learning rate of $2e^{-4}$, a warmup
+    rate of $0.1$. There is a weight decay of 0.05, but this will not need to be
+    worried. Since this is a transcription model, I have set the scale of
+    greediness to the max (1 is greedy in this case). The generation max length that
+    the model is allowed is 200 which means that the model can only generate an output
+    of 200 tokens. To deal with the gradients from peaking, I have set the normalization
+    to 1 ( a scale from 0 to 1).
+
+    The base model has none of the setup, it is just loaded from the repository and
+    tested on the datset.
 
     \subsubsection{Worry about fine-tuning the model}
+    The main concern with fine tuning the model with the data we have is that the
+    model would memorize the output. Since the transcription are in the same
+    style, the model has a chance of seeing this and just ``hack'' the system and
+    provide poor metrics. The other worry is with the size of the dataset and
+    how short the audio are, there could be a chance of overfitting, where the
+    model learns the outputs a bit too well. Overfitting can be confusing with the
+    memorization. With both, the main sign is that the model will do extremely well
+    in the training split but when it comes to the test split, there is a gap in
+    the metrics.
+
+    When testing the right parameters, I did notice the memorization effect on the
+    model. This could well be on the dataset side plus the extreme tweaking of
+    the model. Overall I got the model to have an acceptable range for French.
+
+    If we would use the fine-tuned model, the third worry is that the model is
+    confident in the acoustic of the room and the setup of the mics, so if there are
+    any changes to the room, microphones, background noise, etc, the model might hallucinate
+    and/or overcompensate the output.
+
+    \section{Results}
+    \subsection{Metrics}
+    The metrics used for ASR are Character Error Rate (CER) and Word Error Rate (WER)
+    \citep{jurafsky2023slp,jiwer2022,huggingface_evaluate}. These two are the standard.
+    For the fine-tuned model, I kept track on the loss (normal loss and
+    evaluation loss) along with the gradient normalization.
+
+    CER is just how good the model can do with transcription \citep{tamanna2025deciphering},
+    this is mainly character by character. WER is how many words the model got
+    right \citep{nlplanet_wer_intro}. The lower the value of WER, the more accurate
+    the model is. For CER, it is the same, the acceptable range is 5\% to 10\%
+    and 5\% to 15\% for WER.
+
+    \subsection{Base model}
+    The model without any finetuning perform well with the full dataset (train and
+    test split combined). The CER for the model was around 4.5\% and a WER of
+    15.5\%. This is good for what the experiment we are doing.
+
+    \subsection{Fine tuned model}
 
     \bibliographystyle{plainnat}
     \bibliography{custom}

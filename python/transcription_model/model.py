@@ -213,6 +213,3 @@ class French_Speech_text:
         self.model.generation_config.save_pretrained(output_dir)
 
         return train_result
-
-    def transcribe(self):
-        pass
