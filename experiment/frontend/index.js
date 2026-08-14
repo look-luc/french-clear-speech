@@ -20,6 +20,12 @@ if (consentGranted !== "true") {
     },
   });
 
+  var subject_id = jsPsych.randomization.randomID(10);
+
+  jsPsych.data.addProperties({
+    subject: subject_id,
+  });
+
   jsPsych.data.addProperties({
     consent_given: true,
     consent_timestamp: sessionStorage.getItem("consent_timestamp"),
@@ -88,6 +94,9 @@ if (consentGranted !== "true") {
     recording_duration: null,
     show_done_button: true,
     done_button_label: "Stop Recording/Arretez Enregistrer",
+    data: {
+      custom_tag: "clear-speech",
+    },
   };
 
   const test_procedure = {
