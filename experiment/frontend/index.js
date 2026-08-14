@@ -1,14 +1,3 @@
-async function loadJSON() {
-  try {
-    const response = await fetch("./stimuli.json");
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
-    console.log(data);
-  } catch (error) {
-    console.error("Could not load JSON:", error);
-  }
-}
-
 const consentGranted = sessionStorage.getItem("consent_granted");
 if (consentGranted !== "true") {
   window.location.href = "consent.html";
@@ -86,8 +75,6 @@ if (consentGranted !== "true") {
   };
   timeline.push(welcome);
 
-  const test_stimuli = loadJSON();
-
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
@@ -101,7 +88,7 @@ if (consentGranted !== "true") {
 
   const test_procedure = {
     timeline: [test_run],
-    timeline_variables: test_stimuli,
+    timeline_variables: STIMULI,
     randomize_order: true,
   };
 

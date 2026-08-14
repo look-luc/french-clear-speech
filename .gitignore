@@ -1,3 +1,5 @@
 .env
 Sounds _ TextGrids - taches/
 data/
+experiment/backend/.venv/
+experiment/backend/config/.env
