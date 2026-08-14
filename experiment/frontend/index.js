@@ -1,3 +1,14 @@
+async function loadJSON() {
+  try {
+    const response = await fetch("./stimuli.json");
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error("Could not load JSON:", error);
+  }
+}
+
 const consentGranted = sessionStorage.getItem("consent_granted");
 if (consentGranted !== "true") {
   window.location.href = "consent.html";
@@ -68,6 +79,24 @@ if (consentGranted !== "true") {
       </div>`,
   };
   timeline.push(welcome);
+
+  const test_stimuli = loadJSON();
+
+  var test_run = {
+    type: jsPsychHtmlAudioResponse,
+    stimulus: jsPsych.timelineVariable("stimulus"),
+    recording_duration: null,
+    show_done_button: true,
+    done_button_label: "Stop Recording/Arretez Enregistrer",
+  };
+
+  const test_procedure = {
+    timeline: [test_run],
+    timeline_variables: test_stimuli,
+    randomize_order: true,
+  };
+
+  timeline.push(test_procedure);
 
   jsPsych.run(timeline);
 }
