@@ -1,7 +1,6 @@
 import io
 
 import torchaudio
-from django.http import JsonResponse
 
 from python.transcription_model.model_experiment import French_Clear_Speech_Model
 
@@ -21,7 +20,7 @@ class transcription:
 
     def decode_audio(self, uploaded_file):
         audio_bytes = io.BytesIO(uploaded_file.read())
-        audio_array, _ = torchaudio.load(audio_bytes)
+        audio_array, sample_rate = torchaudio.load(audio_bytes)
         return audio_array
 
     def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):

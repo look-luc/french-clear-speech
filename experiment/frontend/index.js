@@ -40,7 +40,7 @@ if (consentGranted !== "true") {
           <span id="timer-display" class="timer">5 seconds</span>
         </div>
         <p>Please say <strong>"test"</strong> to check your microphone.</p>
-        <p>S'il vous plaît dis <strong>"test"</strong> pour le vérification votre microphone
+        <p>S'il vous plaît dis <strong>"test"</strong> pour le vérification votre microphone</p>
       `,
     recording_duration: 5000,
     allow_playback: true,
@@ -75,6 +75,27 @@ if (consentGranted !== "true") {
   };
   timeline.push(welcome);
 
+  async function upload_and_transcribe(audio_blob, metadata) {
+    const form_data = new FormData();
+    form_data.append("audio", audio_blob, "recording.wav");
+    form_data.append("subject", metadata.subject);
+    form_data.append("trial_index", metadata.trial_index);
+    form_data.append("stimulus", metadata.stimulus);
+    form_data.append("custom_tag", metadata.custom_tag);
+
+    const response = await fetch("/handle_transcription/", {
+      method: "POST",
+      body: form_data,
+    });
+    const results = await response.json();
+
+    if (results.STATUS === "SUCCESS") {
+      return [results.TRANSCRIPTION, results.CONFIDENCE];
+    } else {
+      throw new Error(results.MESSAGE);
+    }
+  }
+
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
@@ -82,36 +103,47 @@ if (consentGranted !== "true") {
     show_done_button: true,
     done_button_label: "Stop Recording/Arretez Enregistrer",
     data: {
-      custom_tag: "clear-speech",
+      custom_tag: "clear_speech",
     },
     on_finish: async function (data) {
-      audio_blob = data.audio_response;
-      (transcription_text,
-        (confidence = await upload_and_transcribe(audio_blob)));
+      const audio_blob = data.audio_response;
+
+      const metadata = {
+        subject: subject_id,
+        trial_index: data.trial_index,
+        stimulus: data.stimulus,
+        custom_tag: data.custom_tag,
+      };
+
+      const [transcription_text, confidence_val] = await upload_and_transcribe(
+        audio_blob,
+        metadata,
+      );
+
       data.model_transcript = transcription_text;
-      data.confidence = confidence;
+      data.confidence = confidence_val;
     },
   };
 
   var jspsych_display_trial = {
     type: jsPsychHtmlButtonResponse,
     stimulus: function () {
-      prev_data = jsPsych.get().last(1).values()[0];
-      text = prev_data.model_transcript;
-      confidence = data.confidence * 100;
+      const prev_data = jsPsych.data.get().last(1).values()[0];
+      const text = prev_data.model_transcript;
+      const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
       return (
         "<div>Je suis <b>" +
-        confidence +
-        "</b>% sûr que vous avez dit: " +
+        confidence_prct +
+        "%</b> sûr que vous avez dit: <b>" +
         text +
         "</b></div>"
       );
     },
-    choises: ["continue"],
+    choices: ["Continue"],
   };
 
   const test_procedure = {
-    timeline: [test_run],
+    timeline: [test_run, jspsych_display_trial],
     timeline_variables: STIMULI,
     randomize_order: true,
   };
