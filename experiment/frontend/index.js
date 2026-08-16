@@ -84,6 +84,30 @@ if (consentGranted !== "true") {
     data: {
       custom_tag: "clear-speech",
     },
+    on_finish: async function (data) {
+      audio_blob = data.audio_response;
+      (transcription_text,
+        (confidence = await upload_and_transcribe(audio_blob)));
+      data.model_transcript = transcription_text;
+      data.confidence = confidence;
+    },
+  };
+
+  var jspsych_display_trial = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: function () {
+      prev_data = jsPsych.get().last(1).values()[0];
+      text = prev_data.model_transcript;
+      confidence = data.confidence * 100;
+      return (
+        "<div>Je suis <b>" +
+        confidence +
+        "</b>% sûr que vous avez dit: " +
+        text +
+        "</b></div>"
+      );
+    },
+    choises: ["continue"],
   };
 
   const test_procedure = {

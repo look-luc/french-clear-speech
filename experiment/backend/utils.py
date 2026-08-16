@@ -1,16 +1,37 @@
+import io
+
+import torchaudio
+from django.http import JsonResponse
+
 from python.transcription_model.model_experiment import French_Clear_Speech_Model
 
 
-class audio:
-    def __init__(self):
-        pass
+class ModelSingleton:
+    _instance = None
 
-    def audio_to_model(self):
-        pass
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = French_Clear_Speech_Model()
+        return cls._instance
 
-    def audio_to_data(self):
-        pass
+class transcription:
+    def __init__(self) -> None:
+        self.model = ModelSingleton.get_instance()
 
-class data:
-    def __init__(self):
-        pass
+    def decode_audio(self, uploaded_file):
+        audio_bytes = io.BytesIO(uploaded_file.read())
+        audio_array, _ = torchaudio.load(audio_bytes)
+        return audio_array
+
+    def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):
+        audio_array = self.decode_audio(file)
+
+        self.transcription, self.confidence = self.model.transcribe(
+            audio_array=audio_array.numpy(),
+            sampling_rate=16000,
+            cutoff_freq=cutoff_freq,
+            snr_db=snr_db,
+            temp=temp,
+        )
+        return self.transcription
