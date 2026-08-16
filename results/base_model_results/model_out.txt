@@ -1,2 +1,0 @@
-Successfully trained model setup: bofenghuang/whisper-medium-french
-{'CER': 0.6186789314811558, 'WER': 0.3168510698530279}
