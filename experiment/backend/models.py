@@ -25,8 +25,6 @@ class audio_processor:
         if file.content_type not in allowed_types:
             raise ValueError("Unsupported audio format")
         return True
-
-<<<<<<< HEAD
         self.transcription, self.confidence = self.model.transcribe(
             audio_array=audio_array.numpy(),
             sampling_rate=16000,
@@ -35,13 +33,6 @@ class audio_processor:
             temp=temp,
         )
         return self.transcription
-=======
-    def process(self, uploaded_file):
-        self.validate_django_file(uploaded_file)
->>>>>>> parent of 21d8f81 (trying to get everything connected)
-
-        transcription = French_Clear_Speech_Model.transcribe(np.array(uploaded_file))
-        return transcription
 
 
 class audio_job(models.Model):
