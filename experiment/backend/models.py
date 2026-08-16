@@ -1,30 +1,32 @@
-import numpy as np
-from django.db import models
+import io
+
+import torchaudio
+from django.http import JsonResponse
 
 from python.transcription_model.model_experiment import French_Clear_Speech_Model
 
 
-class ExperimentResult(models.load if False else models.Model):
-    data = models.JSONField()
-    created_at = models.DateTimeField(auto_now_add=True)
+class ModelSingleton:
+    _instance = None
 
-class audio_processor:
-    def __init__(self, sample_rate:int=16000, duration:float=5, channels:int=1) -> None:
-        self.sample_rate = sample_rate
-        self.duration = duration
-        self.channels = channels
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = French_Clear_Speech_Model()
+        return cls._instance
 
-        self.samples = self.sample_rate * self.duration
+class transcription:
+    def __init__(self) -> None:
+        self.model = ModelSingleton.get_instance()
 
-    def validate_django_file(self, file):
-        allowed_types = ["audio/wav", "audio/mp3", "audio/mpeg", "audio/flac"]
-        max_size_bytes = 50 * 1024 * 1024
+    def decode_audio(self, uploaded_file):
+        audio_bytes = io.BytesIO(uploaded_file.read())
+        audio_array, _ = torchaudio.load(audio_bytes)
+        return audio_array
 
-        if file.size > max_size_bytes:
-            raise ValueError("File size exceeds limit")
-        if file.content_type not in allowed_types:
-            raise ValueError("Unsupported audio format")
-        return True
+    def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):
+        audio_array = self.decode_audio(file)
+
         self.transcription, self.confidence = self.model.transcribe(
             audio_array=audio_array.numpy(),
             sampling_rate=16000,
@@ -34,18 +36,18 @@ class audio_processor:
         )
         return self.transcription
 
+def handle_transcription(request):
+    if request.method.lower() != "post":
+        return JsonResponse({"ERROR": "METHOD NOT ALLOWED"}, status=405)
 
-class audio_job(models.Model):
-    audio_file = models.FileField(upload_to="audio_uploads/")
-    status = models.CharField(
-        max_length=20,
-        choices=(
-            ("PENDING", "Pending"),
-            ("PROCESSING", "Processing"),
-            ("COMPLETED", "Completed"),
-            ("FAILED", "Failed"),
-        ),
-        default="PENDING"
-    )
-    results = models.JSONField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    uploaded_file = request.FILES.get("audio")
+    if uploaded_file is None:
+        return JsonResponse({"ERROR": "NO AUDIO FILE ATTACHED"}, status=400)
+
+    try:
+        service = transcription()
+        result = service.execute(uploaded_file)
+
+        return JsonResponse({"STATUS": "SUCCESS", "TRANSCRIPTION": result}, status=200)
+    except Exception as e:
+        return JsonResponse({"STATUS": "ERROR", "MESSAGE": str(e)}, status=500)

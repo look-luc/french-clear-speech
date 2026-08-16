@@ -1,0 +1,198 @@
+\documentclass[12pt]{article}
+\usepackage{natbib}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{setspace}
+
+\title{Can a model transcribe French speech?\\A documentation of the model}
+\date{}
+\author{}
+
+\begin{document}
+    \singlespacing
+    \setlength{\parindent}{36pt}
+    \maketitle
+    \section{Background}
+    To have feedback for participants in an experiment about clarity, having a
+    model to be as the listener would be a logical next step. Instead of training
+    a model from scratch or even taking a speech to text model and fine tuning it,
+    I figured that there has to be a model that was already trained on French
+    speech.
+
+    \section{Terminology}
+    \label{sec:term} I used the term fine tuned, what is it actually. Fine
+    tuning a pre-existing model is just taking a model of choice and further
+    training it on a selected dataset. This makes the model be more of an expert in
+    a certain portion of datatypes. So for example, the model I used that would be
+    utilized is the \citet{huang2022whisper-medium-french} whisper-medium model
+    for ASR (automatic speech recognition) in French model which uses OpenAI's
+    medium sized whisper model \citep{radford2022whisper,radford2023robust}. The
+    French ASR has been trained ``on a composite dataset comprising of over 2200
+    hours of French speech audio, using the train and the validation splits of Common
+    Voice 11.0, Multilingual LibriSpeech, Voxpopuli, Fleurs, Multilingual TEDx,
+    MediaSpeech, and African Accented French" \citep{ardila2020common, Pratap2020MLSAL, wang-etal-2021-voxpopuli, fleurs2022arxiv, salesky2021mtedx, mediaspeech2021, gigant2022african-accented-french}.
+
+    ASR models are a type of model that does speech to text transcription. ASR
+    models ``converts a speech signal to text, mapping a sequence of audio inputs
+    to text outputs" \citep{hf_transformers_asr_docs}.
+
+    \section{Methodology}
+    As mentioned in section~\ref{sec:term}, I used the whisper-medium model for
+    ASR in French \citep{huang2022whisper-medium-french}. This is already a
+    powerful model by itself with the amount of hours it was trained on. The model
+    has $769$ million parameters to tweak which will come in handy later on.
+
+    \subsection{Data}
+    Since we have data that was already collected and have the actual transcription,
+    I decided to fine tune the model further with the data. To make sure that the
+    model actually learns to not include any of the annotation anomolies like \{np\},
+    \{cough\}, \{sp\}, etc, I made sure to remove these. I noticed that if there
+    was some discrempacies with ce and le/la when comes before a vowel so I
+    removed the space that would have been put when extracting from the textgrid.
+    The data can be seen here: \citet{lookitsluc1-french-cleer-speech}. I split
+    the data $80\%$ to $20\%$. The training split has around 4.59 thousand elements
+    and the test split has around 1.15 thousand elements.
+
+    \subsection{Fine tuned training}
+    \subsubsection{LoRA \& PEFT setup}
+    To make the model ready to be fine-tuned, there are some elements that were
+    added on top to get the metrics to a good point. Since whisper-medium-french \citep{huang2022whisper-medium-french}
+    has $769$ million parameters, I did not want to tweak the parameters that gives
+    the power of the whisper model to do the speech-to-text task. To only target
+    the parameters that would best to tweak in my favor, I added a PEFT (Parameter-Efficient
+    Fine-Tuning) via LoRA (Low-Rank Adaptation) wrapper on top of the base model (whisper-medium-french
+    \citep{huang2022whisper-medium-french}).
+
+    LoRA freezes base model’s weights and adds an adapter on top that runs along
+    side model and is task specific. PEFT is a way to lower computation times and
+    tunes a small subset of parameters for the task. PEFT takes additional
+    parameters and changes and tweaks them. Adds small, trainable modules or
+    updates a limited set of parameters instead of the full model; Learns task-specific
+    patterns without affecting the core pre-trained model; Maintains efficiency
+    while enabling easy customization using techniques like adapters, LoRA, and
+    prompt tuning \citep{geeksforgeeks_peft}.
+
+    To setup the LoRA and PEFT for the whisper-medium-french \citep{huang2022whisper-medium-french},
+    there are some parameters I explicitly set. The first is rank (r), which is the
+    amount of parameters to be trained so ''a higher rank means the model has more
+    parameters to train, but it also means the model has more learning capacity,"
+    \citep{hf-peft-lora-docs-v020}. In the model I have set the rank to $8$. The lora\_alpha
+    is the scaling factor which controls how intense the adapter weights affect the
+    base model; I put as 16. The bias is ``whether none, all or only the LoRA bias
+    parameters should be trained" \citep{hf-peft-lora-docs-v020} which I set to ``none''.
+    The target\_modules are there to let LoRA/PEFT what to focus on when LoRA
+    updates the matrices \citep{hf_peft_lora_conceptual}. Task\_type is what the
+    model should be trained for, since I already specified in the loading of the model
+    to be transcribe, I set this to none. Finally lora\_dropout randomly turns off
+    a set percentage of adapter weights during training.
+
+    \subsubsection{Training setup}
+    When it comes to the training arguments, the basic thing to elaborate is
+    that the model ran for 2 epochs, with a learning rate of $2e^{-4}$, a warmup
+    rate of $0.1$. There is a weight decay of 0.05, but this will not need to be
+    worried. Since this is a transcription model, I have set the scale of
+    greediness to the max (1 is greedy in this case). The generation max length that
+    the model is allowed is 200 which means that the model can only generate an output
+    of 200 tokens. To deal with the gradients from peaking, I have set the normalization
+    to 1 ( a scale from 0 to 1).
+
+    The base model has none of the setup, it is just loaded from the repository and
+    tested on the datset.
+
+    \subsubsection{Worry about fine-tuning the model}
+    The main concern with fine tuning the model with the data we have is that the
+    model would memorize the output. Since the transcription are in the same
+    style, the model has a chance of seeing this and just ``hack'' the system and
+    provide poor metrics. The other worry is with the size of the dataset and
+    how short the audio are, there could be a chance of overfitting, where the
+    model learns the outputs a bit too well. Overfitting can be confusing with the
+    memorization. With both, the main sign is that the model will do extremely well
+    in the training split but when it comes to the test split, there is a gap in
+    the metrics.
+
+    When testing the right parameters, I did notice the memorization effect on the
+    model. This could well be on the dataset side plus the extreme tweaking of
+    the model. Overall I got the model to have an acceptable range for French.
+
+    If we would use the fine-tuned model, the third worry is that the model is
+    confident in the acoustic of the room and the setup of the mics, so if there are
+    any changes to the room, microphones, background noise, etc, the model might hallucinate
+    and/or overcompensate the output.
+
+    \section{Results}
+    \subsection{Metrics}
+    The metrics used for ASR are Character Error Rate (CER) and Word Error Rate (WER)
+    \citep{jurafsky2023slp,jiwer2022,huggingface_evaluate}. These two are the standard.
+    For the fine-tuned model, I kept track on the loss (normal loss and
+    evaluation loss) along with the gradient normalization.
+
+    CER is just how good the model can do with transcription \citep{tamanna2025deciphering},
+    this is mainly character by character. WER is how many words the model got
+    right \citep{nlplanet_wer_intro}. The lower the value of WER, the more accurate
+    the model is. For CER, it is the same, the acceptable range is 5\% to 10\%
+    and 5\% to 15\% for WER.
+
+    \subsection{Base model}
+    The model without any finetuning perform well with the full dataset (train and
+    test split combined). The CER for the model was around 4.5\% and a WER of
+    15.5\%. This is good for what the experiment we are doing.
+
+    \subsection{Fine tuned model}
+    The metrics of the fine tuned model show promising results. tables~\ref{fig:CER}
+    to \ref{fig:eval} shows the metrics. For CER and WER, there are only two points,
+    the point furthest right is the one we would look at. The reason we only see two
+    is because I set the model to save the best model. For the losses and the
+    normalization, we see the graph take a steady decline towards 0. For the losses,
+    this could mean that it is either overfitting or memorizing but given the
+    CER and WER, that could be ruled out.
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/CER_score.png
+        }
+        \caption{CER for fine tuned}
+        \label{fig:CER}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/WER_score.png
+        }
+        \caption{WER for fine tuned}
+        \label{fig:WER}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/gradient_normalization.png
+        }
+        \caption{Gradient normalization for fine tuned}
+        \label{fig:Gradient}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/training_loss.png
+        }
+        \caption{Training loss for fine tuned}
+        \label{fig:Training}
+    \end{figure}
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[width=0.8\textwidth]{
+            ../../results/log_288/graphs/evaluation_loss.png
+        }
+        \caption{Evaluation loss for fine tuned}
+        \label{fig:eval}
+    \end{figure}
+
+    \bibliographystyle{plainnat}
+    \bibliography{custom}
+\end{document}
