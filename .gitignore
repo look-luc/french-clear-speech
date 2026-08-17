@@ -4,3 +4,4 @@ data/
 experiment/backend/.venv/
 experiment/backend/config/.env
 sql/
+whisper-french-experiment/
