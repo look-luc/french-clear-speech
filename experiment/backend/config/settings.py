@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'experiment',  # Registered experiment application
+    'experiment_modules',  # Registered experiment application
 ]
 
 MIDDLEWARE = [

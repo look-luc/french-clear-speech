@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.views.generic import TemplateView
-from experiment.views import handle_transcription
+from experiment_modules.views import handle_transcription
 
 urlpatterns = [
     path('admin/', admin.site.urls),

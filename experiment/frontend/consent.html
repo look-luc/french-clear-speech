@@ -1,9 +1,10 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
         <title>French Clear Speech - Informed Consent</title>
-        <link rel="stylesheet" href="consent.css" />
+        <link rel="stylesheet" href="{% static 'consent.css' %}" />
     </head>
     <body>
         <div class="consent-card">
@@ -86,6 +87,6 @@
             </form>
         </div>
 
-        <script src="consent.js"></script>
+        <script src="{% static consent.js %}"></script>
     </body>
 </html>
