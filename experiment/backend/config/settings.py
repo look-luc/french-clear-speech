@@ -17,10 +17,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-key-for-dev")
 DATABASE_PASSWORD = str(os.getenv("DATABASE_PASSWORD"))
 PORT = os.getenv("PORT_VAL")
 
@@ -39,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'experiment',  # Registered experiment application
 ]
 
 MIDDLEWARE = [
@@ -53,10 +52,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+FRONTEND_DIR = BASE_DIR.parent / "frontend"
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [FRONTEND_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -67,6 +68,8 @@ TEMPLATES = [
         },
     },
 ]
+
+STATICFILES_DIRS = [FRONTEND_DIR]
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
