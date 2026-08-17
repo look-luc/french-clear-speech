@@ -3,5 +3,6 @@ Sounds _ TextGrids - taches/
 data/
 experiment/backend/.venv/
 experiment/backend/config/.env
-sql/
 whisper-french-experiment/
+whisper_merged/
+whisper_merged.zip
