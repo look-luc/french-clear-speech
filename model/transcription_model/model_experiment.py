@@ -12,23 +12,27 @@ from transformers import (
 
 python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
+script_path = Path(__file__).resolve().parent
 
-script_path = root_dir = Path(__file__).resolve().parent
+
 class French_Clear_Speech_Model:
     def __init__(
         self,
         model_id: str = "bofenghuang/whisper-medium-french",
-        path_to_model:str=f"{script_path}/whisper-french-experiment"
+        path_to_model: str = f"{script_path}/whisper-french-experiment",
+        is_fine_tuned: bool = False,
     ) -> None:
         torch.backends.cudnn.enabled = False
 
         self.model_id = model_id
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
         self.path_to_model = path_to_model
-        self.processor, self.feature_extractor, self.model = self._setup()
 
-    def _setup(self, is_fine_tuned:bool=False):
+        self.processor, self.feature_extractor, self.model = self._setup(
+            is_fine_tuned=is_fine_tuned
+        )
+
+    def _setup(self, is_fine_tuned: bool = False):
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe"
         )
@@ -38,17 +42,14 @@ class French_Clear_Speech_Model:
             self.model_id, use_safetensors=True
         ).to(self.device)
 
-        model.generation_config.forced_decoder_ids = (
-            processor.get_decoder_prompt_ids(language="french", task="transcribe")
-        )
         model.generation_config.language = None
         model.generation_config.task = None
         model.generation_config.use_timestamps = False
+
         if is_fine_tuned:
             peft_model = PeftModel.from_pretrained(model, self.path_to_model)
             peft_model = peft_model.merge_and_unload()
             peft_model.enable_input_require_grads()
-
             return processor, feature_extractor, peft_model
         else:
             return processor, feature_extractor, model
@@ -57,20 +58,18 @@ class French_Clear_Speech_Model:
         self,
         audio_array: torch.Tensor,
         sample_rate: int,
-        cutoff_freq: int|None,
-        snr_db: int|None,
+        cutoff_freq: int | None,
+        snr_db: int | None,
     ):
-        degraded_audio = audio_array.clone().numpy()
+        degraded_audio = audio_array.detach().cpu().numpy()
 
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
             normal_cutoff = cutoff_freq / nyquist
 
-            # output="sos" returns a single matrix array, resolving tuple unpacking type stubs
             sos = signal.butter(
                 N=5, Wn=normal_cutoff, btype="low", analog=False, output="sos"
             )
-
             degraded_audio = signal.sosfilt(sos, degraded_audio)
 
         if snr_db is not None:
@@ -78,13 +77,11 @@ class French_Clear_Speech_Model:
 
             if signal_power > 0:
                 noise_power = signal_power / (10 ** (snr_db / 10))
-
                 noise = np.random.normal(
                     loc=0.0,
                     scale=np.sqrt(noise_power),
                     size=len(degraded_audio),
                 )
-
                 degraded_audio = degraded_audio + noise
 
         return degraded_audio
@@ -102,21 +99,22 @@ class French_Clear_Speech_Model:
         )
 
         input_features = self.processor(
-            processed_audio, sampling_rate=sampling_rate
-        ).input_features
+            processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
+        ).input_features.to(self.device)
 
-        input_features = input_features
-        # input_features = input_features.to(self.device)
+        forced_decoder_ids = self.processor.get_decoder_prompt_ids(
+            language="french", task="transcribe"
+        )
 
         output_ids = self.model.generate(
-            input_features,
+            input_features=input_features,
             output_scores=True,
             return_dict_in_generate=True,
             do_sample=True,
             temperature=temp,
         )
 
-        transcription = self.processor.batch_decode(
+        transcription_list = self.processor.batch_decode(
             output_ids.sequences,
             skip_special_tokens=True,
         )
@@ -129,7 +127,7 @@ class French_Clear_Speech_Model:
         avg_log_prob = torch.mean(confidence)
         conf_score = torch.exp(avg_log_prob)
 
-        transcription_text = transcription[0] if transcription else ""
+        transcription_text = transcription_list[0] if transcription_list else ""
         confidence_val = conf_score.item()
 
         return transcription_text, confidence_val

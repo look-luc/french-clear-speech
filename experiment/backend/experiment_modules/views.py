@@ -21,8 +21,7 @@ def handle_transcription(request):
 
     try:
         service = transcription()
-        result = service.execute(uploaded_file)
-        confidence_score = service.confidence
+        result, confidence_score = service.execute(uploaded_file)
 
         record = audio_experiment_record.objects.create(
             subject=subject,
