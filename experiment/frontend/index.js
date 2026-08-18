@@ -20,6 +20,18 @@ if (consentGranted !== "true") {
     consent_timestamp: sessionStorage.getItem("consent_timestamp"),
   });
   var timeline = [];
+  var welcome = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `<div class="welcome-eng">
+        <p><strong>Welcome to the experiment.</strong></p>
+        <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
+        <p>Press any key to begin.</p>
+        <p><strong>Bienvenue a l'expérience.</strong></p>
+        <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
+        <p>Poussez n'importe quelle touche pour commencer.</p>
+      </div>`,
+  };
+  timeline.push(welcome);
 
   var init_mic = {
     type: jsPsychInitializeMicrophone,
@@ -62,19 +74,6 @@ if (consentGranted !== "true") {
   };
   timeline.push(test_mic);
 
-  var welcome = {
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="welcome-eng">
-        <p><strong>Welcome to the experiment.</strong></p>
-        <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
-        <p>Press any key to begin.</p>
-        <p><strong>Bienvenue a l'expérience.</strong></p>
-        <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
-        <p>Poussez n'importe quelle touche pour commencer.</p>
-      </div>`,
-  };
-  timeline.push(welcome);
-
   async function upload_and_transcribe(audio_blob, metadata) {
     const form_data = new FormData();
     form_data.append("audio", audio_blob, "recording.wav");
@@ -103,13 +102,14 @@ if (consentGranted !== "true") {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
     show_done_button: true,
+    recording_duration: 30000,
     allow_playback: false,
     done_button_label: "Stop Recording/Arretez Enregistrer",
     data: {
       custom_tag: "clear_speech",
     },
     on_finish: function (data) {
-      audio_blob = data.audio_response;
+      audio_blob = data.audio_response || data.response;
 
       metadata = {
         subject: subject_id,
@@ -125,8 +125,14 @@ if (consentGranted !== "true") {
     choices: "NO_KEYS",
     stimulus: "<div> Transcribing audio/Transcrit l'audio... </div>",
     on_load: async function () {
+      if (!audio_blob) {
+        console.error("Audio blob is not available yet.");
+        jsPsych.finishTrial({ model_transcript: "NO_AUDIO", confidence: 0 });
+        return;
+      }
+      const blob = await fetch(audio_blob).then((r) => r.blob());
       const [transcription_text, confidence_val] = await upload_and_transcribe(
-        await fetch(audio_blob).then((r) => r.blob()),
+        blob,
         metadata,
       );
       jsPsych.finishTrial({
