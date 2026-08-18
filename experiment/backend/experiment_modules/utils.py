@@ -1,8 +1,8 @@
-import io
 import sys
+import tempfile
 from pathlib import Path
 
-import torchaudio
+import scipy
 
 root_dir = Path(__file__).resolve().parents[3]
 if str(root_dir) not in sys.path:
@@ -25,8 +25,11 @@ class transcription:
         self.model = ModelSingleton.get_instance()
 
     def decode_audio(self, uploaded_file):
-        audio_bytes = io.BytesIO(uploaded_file.read())
-        audio_array, sample_rate = torchaudio.load(audio_bytes)
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as temp_file:
+            for chunk in uploaded_file.chunks():
+                temp_file.write(chunk)
+            temp_file.flush()
+            audio_array, sample_rate = scipy.io.wavfile.read(temp_file.name)
         return audio_array
 
     def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):
