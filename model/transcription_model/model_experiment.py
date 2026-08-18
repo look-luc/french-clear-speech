@@ -55,12 +55,12 @@ class French_Clear_Speech_Model:
 
     def _apply_acoustic_degradation(
         self,
-        audio_array: np.ndarray,
+        audio_array: Tensor,
         sample_rate: int,
         cutoff_freq: int|None,
         snr_db: int|None,
     ) -> np.ndarray:
-        degraded_audio = audio_array.copy()
+        degraded_audio = audio_array.clone()
 
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
