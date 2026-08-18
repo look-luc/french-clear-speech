@@ -74,6 +74,24 @@ if (consentGranted !== "true") {
   };
   timeline.push(test_mic);
 
+  function base64_to_blob(base64_str) {
+    var parts = base64_str.split(",");
+    var header = parts.length > 1 ? parts[0] : "";
+    var base64_data = parts.length > 1 ? parts[1] : parts[0];
+
+    var mime_match = header.match(/:(.*?);/);
+    var mime_type = mime_match ? mime_match[1] : "audio/wav";
+
+    var binary_data = atob(base64_data);
+    var byte_array = new Uint8Array(binary_data.length);
+
+    for (let i = 0; i < binary_data.length; i++) {
+      byte_array[i] = binary_data.charCodeAt(i);
+    }
+
+    return new Blob([byte_array], { type: mime_type });
+  }
+
   async function upload_and_transcribe(audio_blob, metadata) {
     const form_data = new FormData();
     form_data.append("audio", audio_blob, "recording.wav");
@@ -126,11 +144,23 @@ if (consentGranted !== "true") {
     stimulus: "<div> Transcribing audio/Transcrit l'audio... </div>",
     on_load: async function () {
       if (!audio_blob) {
-        console.error("Audio blob is not available yet.");
         jsPsych.finishTrial({ model_transcript: "NO_AUDIO", confidence: 0 });
         return;
       }
-      const blob = await fetch(audio_blob).then((r) => r.blob());
+
+      let blob;
+      if (audio_blob instanceof Blob) {
+        blob = audio_blob;
+      } else if (
+        typeof audio_blob === "string" &&
+        audio_blob.startsWith("blob:")
+      ) {
+        const response = await fetch(audio_blob);
+        blob = await response.blob();
+      } else {
+        blob = base64_to_blob(audio_blob);
+      }
+
       const [transcription_text, confidence_val] = await upload_and_transcribe(
         blob,
         metadata,
