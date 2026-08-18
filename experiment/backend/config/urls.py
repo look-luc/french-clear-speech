@@ -21,6 +21,7 @@ from experiment_modules.views import handle_transcription
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", TemplateView.as_view(template_name="index.html"), name="home"),
+    path("index.html", TemplateView.as_view(template_name="index.html"), name="home"),
+    path("consent.html", TemplateView.as_view(template_name="consent.html"), name="consent"),
     path("handle_transcription/", handle_transcription, name="transcription"),
 ]

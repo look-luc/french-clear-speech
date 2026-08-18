@@ -96,39 +96,52 @@ if (consentGranted !== "true") {
     }
   }
 
+  var audio_blob = null;
+  var metadata = null;
+
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
-    recording_duration: null,
+    recording_duration: 1000000000,
     show_done_button: true,
+    allow_playback: false,
     done_button_label: "Stop Recording/Arretez Enregistrer",
     data: {
       custom_tag: "clear_speech",
     },
-    on_finish: async function (data) {
-      const audio_blob = data.audio_response;
+    on_finish: function (data) {
+      audio_blob = data.audio_response;
 
-      const metadata = {
+      metadata = {
         subject: subject_id,
         trial_index: data.trial_index,
         stimulus: data.stimulus,
         custom_tag: data.custom_tag,
       };
+    },
+  };
 
+  var processing_audio = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: "<div> Transcribing audio/Transcrit l'audio... </div>",
+    on_load: async function (data) {
       const [transcription_text, confidence_val] = await upload_and_transcribe(
         audio_blob,
         metadata,
       );
-
       data.model_transcript = transcription_text;
       data.confidence = confidence_val;
+      jsPsych.finishTrial({
+        model_transcript: data.model_transcript,
+        confidence: data.confidence,
+      });
     },
   };
 
   var jspsych_display_trial = {
     type: jsPsychHtmlButtonResponse,
     stimulus: function () {
-      const prev_data = jsPsych.data.get().last(1).values()[0];
+      const prev_data = jsPsych.data.get().values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
       return (
@@ -143,7 +156,7 @@ if (consentGranted !== "true") {
   };
 
   const test_procedure = {
-    timeline: [test_run, jspsych_display_trial],
+    timeline: [test_run, processing_audio, jspsych_display_trial],
     timeline_variables: STIMULI,
     randomize_order: true,
   };
