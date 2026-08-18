@@ -102,7 +102,6 @@ if (consentGranted !== "true") {
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
-    recording_duration: 1000000000,
     show_done_button: true,
     allow_playback: false,
     done_button_label: "Stop Recording/Arretez Enregistrer",
@@ -123,17 +122,16 @@ if (consentGranted !== "true") {
 
   var processing_audio = {
     type: jsPsychHtmlKeyboardResponse,
+    choices: "NO_KEYS",
     stimulus: "<div> Transcribing audio/Transcrit l'audio... </div>",
-    on_load: async function (data) {
+    on_load: async function () {
       const [transcription_text, confidence_val] = await upload_and_transcribe(
-        audio_blob,
+        await fetch(audio_blob).then((r) => r.blob()),
         metadata,
       );
-      data.model_transcript = transcription_text;
-      data.confidence = confidence_val;
       jsPsych.finishTrial({
-        model_transcript: data.model_transcript,
-        confidence: data.confidence,
+        model_transcript: transcription_text,
+        confidence: confidence_val,
       });
     },
   };
@@ -141,7 +139,7 @@ if (consentGranted !== "true") {
   var jspsych_display_trial = {
     type: jsPsychHtmlButtonResponse,
     stimulus: function () {
-      const prev_data = jsPsych.data.get().values()[0];
+      const prev_data = jsPsych.data.get().last(1).values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
       return (
