@@ -62,13 +62,13 @@ class transcription:
                 os.remove(out_path)
 
     def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):
-        audio_array = self.decode_audio(file)
+        audio_tensor = self.decode_audio(file)
 
         self.transcription, self.confidence = self.model.transcribe(
-            audio_array=audio_array,
+            audio_array=audio_tensor,
             sampling_rate=16000,
             cutoff_freq=cutoff_freq,
             snr_db=snr_db,
             temp=temp,
         )
-        return self.transcription
+        return self.transcription, self.confidence

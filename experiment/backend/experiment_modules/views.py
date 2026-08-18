@@ -26,7 +26,7 @@ def handle_transcription(request):
 
         record = audio_experiment_record.objects.create(
             subject=subject,
-            trial_index=str(trial_index),
+            trial_index=trial_index,
             stimulus=stimulus,
             response=result,
             custom_tag=custom_tag

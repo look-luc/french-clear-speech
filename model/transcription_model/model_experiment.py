@@ -55,12 +55,12 @@ class French_Clear_Speech_Model:
 
     def _apply_acoustic_degradation(
         self,
-        audio_array: Tensor,
+        audio_array: torch.Tensor,
         sample_rate: int,
         cutoff_freq: int|None,
         snr_db: int|None,
-    ) -> np.ndarray:
-        degraded_audio = audio_array.clone()
+    ):
+        degraded_audio = audio_array.clone().numpy()
 
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
@@ -91,7 +91,7 @@ class French_Clear_Speech_Model:
 
     def transcribe(
         self,
-        audio_array: np.ndarray,
+        audio_array: torch.Tensor,
         sampling_rate: int = 16000,
         cutoff_freq: int | None = 1500,
         snr_db: int | None = 10,
@@ -104,7 +104,9 @@ class French_Clear_Speech_Model:
         input_features = self.processor(
             processed_audio, sampling_rate=sampling_rate
         ).input_features
-        input_features = input_features.to(self.device)
+
+        input_features = input_features
+        # input_features = input_features.to(self.device)
 
         output_ids = self.model.generate(
             input_features,
@@ -127,4 +129,7 @@ class French_Clear_Speech_Model:
         avg_log_prob = torch.mean(confidence)
         conf_score = torch.exp(avg_log_prob)
 
-        return transcription, conf_score
+        transcription_text = transcription[0] if transcription else ""
+        confidence_val = conf_score.item()
+
+        return transcription_text, confidence_val
