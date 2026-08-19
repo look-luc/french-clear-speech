@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import numpy as np
@@ -128,6 +129,8 @@ class French_Clear_Speech_Model:
         conf_score = torch.exp(avg_log_prob)
 
         transcription_text = transcription_list[0] if transcription_list else ""
+        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr","").strip()
+
         confidence_val = conf_score.item()
 
-        return transcription_text, confidence_val
+        return clean_transcription, confidence_val
