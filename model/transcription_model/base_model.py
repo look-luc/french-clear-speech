@@ -17,7 +17,7 @@ root_dir = Path(__file__).resolve().parents[2]
 if str(python_dir) not in sys.path:
     sys.path.append(str(python_dir))
 
-from python.get_data.get_data import get_data
+from model.get_data.get_data import get_data
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
@@ -65,8 +65,20 @@ class French_Speech_text_base:
             [self.train_split, self.test_split]
         )
 
-        self.dataloader = DataLoader(
-            self.eval_dataset,
+        self.tach_1 = self.eval_dataset.filter(lambda text: "_tache01_" in text["text"])
+        self.tach_2 = self.eval_dataset.filter(lambda text: "_tache02_" in text["text"])
+
+        self.dataloader_tach1 = DataLoader(
+            self.tach_1,
+            batch_size=64,
+            collate_fn=self.collate_fn,
+            shuffle=False,
+            num_workers=2,
+            pin_memory=True,
+        )
+
+        self.dataloader_tach2 = DataLoader(
+            self.tach_2,
             batch_size=64,
             collate_fn=self.collate_fn,
             shuffle=False,
@@ -124,11 +136,21 @@ class French_Speech_text_base:
         }
 
     def predict(self, max_samples: int | None = None):
-        dataset = self.eval_dataset
+        dataset_tache1 = self.tach_1
+        dataset_tache2 = self.tach_2
         if max_samples is not None:
-            dataset = dataset.select(range(min(max_samples, len(dataset))))
-            dataloader = DataLoader(
-                dataset,
+            dataset_tache2 = dataset_tache2.select(range(min(max_samples, len(dataset_tache2))))
+            dataset_tache1 = dataset_tache1.select(range(min(max_samples, len(dataset_tache1))))
+            dataloader1 = DataLoader(
+                dataset_tache1,
+                batch_size=64,
+                collate_fn=self.collate_fn,
+                shuffle=False,
+                num_workers=2,
+                pin_memory=True,
+            )
+            dataloader2 = DataLoader(
+                dataset_tache2,
                 batch_size=64,
                 collate_fn=self.collate_fn,
                 shuffle=False,
@@ -136,12 +158,17 @@ class French_Speech_text_base:
                 pin_memory=True,
             )
         else:
-            dataloader = self.dataloader
+            dataloader1 = self.dataloader_tach1
+            dataloader2 = self.dataloader_tach2
 
         predictions = []
         references = []
 
-        for batch in simple_progress(dataloader, desc="Evaluating Base Model"):
+        cer_score_tache1 = 0
+        wer_score_tache1 = 0
+        cer_score_tache2 = 0
+        wer_score_tache2 = 0
+        for batch in simple_progress(dataloader1, desc="Evaluating Base Model"):
             input_features = batch["input_features"].to(self.device)
             labels = batch["labels"]
 
@@ -168,12 +195,49 @@ class French_Speech_text_base:
             predictions.extend([p.strip() for p in pred_texts])
             references.extend([r.strip() for r in ref_texts])
 
-        print()
-        cer_score = cer_metric.compute(
-            predictions=predictions, references=references
-        )
-        wer_score = wer_metric.compute(
-            predictions=predictions, references=references
-        )
+            print()
+            cer_score_tache1 = cer_metric.compute(
+                predictions=predictions, references=references
+            )
+            wer_score_tache1 = wer_metric.compute(
+                predictions=predictions, references=references
+            )
 
+        for batch in simple_progress(dataloader2, desc="Evaluating Base Model"):
+            input_features = batch["input_features"].to(self.device)
+            labels = batch["labels"]
+
+            with torch.no_grad():
+                generated_ids = self.model.generate(
+                    input_features=input_features, max_new_tokens=225
+                )
+
+            pred_texts = self.processor.batch_decode(
+                generated_ids, skip_special_tokens=True
+            )
+
+            pred_texts = [self.normalizer(p) for p in pred_texts]
+
+            valid_labels = labels.masked_fill(
+                labels == -100, self.processor.tokenizer.pad_token_id
+            )
+            ref_texts = self.processor.batch_decode(
+                valid_labels, skip_special_tokens=True
+            )
+
+            ref_texts = [self.normalizer(r) for r in ref_texts]
+
+            predictions.extend([p.strip() for p in pred_texts])
+            references.extend([r.strip() for r in ref_texts])
+
+            print()
+            cer_score_tache2 = cer_metric.compute(
+                predictions=predictions, references=references
+            )
+            wer_score_tache2 = wer_metric.compute(
+                predictions=predictions, references=references
+            )
+
+        cer_score = {"tache 1": cer_score_tache1, "tache 2": cer_score_tache2}
+        wer_score = {"tache 1": wer_score_tache1, "tache 2": wer_score_tache2}
         return {"CER": cer_score, "WER": wer_score}
