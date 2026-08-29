@@ -3,7 +3,7 @@ import gc
 
 import torch
 
-from python.main import run_model
+from model.main import run_model
 
 if __name__ == "__main__":
     gc.collect()
