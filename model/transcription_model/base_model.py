@@ -161,8 +161,8 @@ class French_Speech_text_base:
             dataloader1 = self.dataloader_tach1
             dataloader2 = self.dataloader_tach2
 
-        predictions_tache1, predictions_tache2 = []
-        references_tache1, references_tache2 = []
+        predictions_tache1, predictions_tache2 = [], []
+        references_tache1, references_tache2 = [], []
 
         cer_score_tache1 = 0
         wer_score_tache1 = 0
@@ -195,14 +195,6 @@ class French_Speech_text_base:
             predictions_tache1.extend([p.strip() for p in pred_texts])
             references_tache1.extend([r.strip() for r in ref_texts])
 
-            print()
-            cer_score_tache1 = cer_metric.compute(
-                predictions=predictions_tache1, references=references_tache1
-            )
-            wer_score_tache1 = wer_metric.compute(
-                predictions=predictions_tache1, references=references_tache1
-            )
-
         for batch in simple_progress(dataloader2, desc="Evaluating Base Model"):
             input_features = batch["input_features"].to(self.device)
             labels = batch["labels"]
@@ -230,14 +222,21 @@ class French_Speech_text_base:
             predictions_tache2.extend([p.strip() for p in pred_texts])
             references_tache2.extend([r.strip() for r in ref_texts])
 
-            print()
-            cer_score_tache2 = cer_metric.compute(
-                predictions=predictions_tache2, references=references_tache2
-            )
-            wer_score_tache2 = wer_metric.compute(
-                predictions=predictions_tache2, references=references_tache2
-            )
+        print()
+        cer_score_tache1 = cer_metric.compute(
+            predictions=predictions_tache1, references=references_tache1
+        )
+        wer_score_tache1 = wer_metric.compute(
+            predictions=predictions_tache1, references=references_tache1
+        )
+
+        cer_score_tache2 = cer_metric.compute(
+            predictions=predictions_tache2, references=references_tache2
+        )
+        wer_score_tache2 = wer_metric.compute(
+            predictions=predictions_tache2, references=references_tache2
+        )
 
         cer_score = {"tache 1": cer_score_tache1, "tache 2": cer_score_tache2}
         wer_score = {"tache 1": wer_score_tache1, "tache 2": wer_score_tache2}
-        return f"CER: tache 1: {cer_score_tache1}, tache 2: {cer_score_tache2}\nWER: tache 1: {wer_score_tache1}, tache 2: {wer_score_tache2}"
+        return f"CER: {cer_score}\nWER: {wer_score}"
