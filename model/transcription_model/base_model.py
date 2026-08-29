@@ -65,8 +65,8 @@ class French_Speech_text_base:
             [self.train_split, self.test_split]
         )
 
-        self.tach_1 = self.eval_dataset.filter(lambda text: "_tache01_" in text["file_name"])
-        self.tach_2 = self.eval_dataset.filter(lambda text: "_tache02_" in text["file_name"])
+        self.tach_1 = self.eval_dataset.filter(lambda text: "_tache01_" in text["input_features"])
+        self.tach_2 = self.eval_dataset.filter(lambda text: "_tache02_" in text["input_features"])
 
         self.dataloader_tach1 = DataLoader(
             self.tach_1,
