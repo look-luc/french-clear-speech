@@ -91,6 +91,7 @@ def get_data(
 
         labels = processor.tokenizer(cleaned_texts).input_ids
         return {
+            "file_name": batch["audio"]["path"],
             "input_features": input_features,
             "labels": labels,
         }
