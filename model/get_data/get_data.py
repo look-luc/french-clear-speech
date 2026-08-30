@@ -90,11 +90,9 @@ def get_data(
             cleaned_texts.append(text)
 
         labels = processor.tokenizer(cleaned_texts).input_ids
-
         return {
             "input_features": input_features,
             "labels": labels,
-            "file_name":list(ds_train_file_name)+list(ds_test_file_name)
         }
 
     processed_dataset_train = ds_train.map(
