@@ -25,6 +25,9 @@ wer_metric = evaluate.load("wer")
 
 def simple_progress(iterable, desc: str = "Evaluating Base Model"):
     total = len(iterable)
+    if total == 0:
+        print(f"{desc}: 0 items to process.")
+        return
     for i, item in enumerate(iterable):
         print(
             f"\r{desc}: {i + 1}/{total} ({(i + 1) / total * 100:.1f}%)",
@@ -65,8 +68,8 @@ class French_Speech_text_base:
             [self.train_split, self.test_split]
         )
 
-        self.tach_1 = self.eval_dataset.filter(lambda text: "_tache01_" in text["input_features"])
-        self.tach_2 = self.eval_dataset.filter(lambda text: "_tache02_" in text["input_features"])
+        self.tach_1 = self.eval_dataset.filter(lambda text: "_tache01_" in text["file_name"])
+        self.tach_2 = self.eval_dataset.filter(lambda text: "_tache02_" in text["file_name"])
 
         self.dataloader_tach1 = DataLoader(
             self.tach_1,
@@ -88,11 +91,16 @@ class French_Speech_text_base:
 
     def _setup(self):
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            self.model_id, use_safetensors=True
+            self.model_id,
+            use_safetensors=True,
+            local_files_only=True
         ).to(self.device)
 
         processor = AutoProcessor.from_pretrained(
-            self.model_id, language="french", task="transcribe"
+            self.model_id,
+            language="french",
+            task="transcribe",
+            local_files_only=True
         )
 
         forced_decoder_ids = processor.get_decoder_prompt_ids(
@@ -101,7 +109,9 @@ class French_Speech_text_base:
         model.generation_config.forced_decoder_ids = forced_decoder_ids
 
         feature_extractor = AutoFeatureExtractor.from_pretrained(
-            self.model_id, use_safetensors=True
+            self.model_id,
+            use_safetensors=True,
+            local_files_only=True
         )
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)

@@ -10,8 +10,12 @@ from datasets import (
     Audio,
     load_dataset,
 )
+from dotenv import load_dotenv
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HfHubHTTPError
+
+load_dotenv()
+hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 
 def get_data(
@@ -27,16 +31,17 @@ def get_data(
                 repo_id,
                 repo_type="dataset",
                 max_workers=2,
-                token=os.getenv("HF_TOKEN")
+                token=hf_token
             )
         )
     except (HfHubHTTPError, Exception) as e:
         print(f"Warning: Hub download rate limited or failed ({e}). Falling back to local data.")
         repo_dir = local_praat_dir
 
-    ds_train = load_dataset(repo_id, split="train")
-    ds_test = load_dataset(repo_id, split="test")
-
+    ds_train = load_dataset(repo_id, split="train", token=hf_token)
+    ds_test = load_dataset(repo_id, split="test", token=hf_token)
+    ds_train_file_name = ds_train["file_name"]
+    ds_test_file_name = ds_train["file_name"]
     ds_train = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
     ds_test = ds_test.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
 
@@ -88,7 +93,8 @@ def get_data(
 
         return {
             "input_features": input_features,
-            "labels": labels
+            "labels": labels,
+            "file_name":list(ds_train_file_name)+list(ds_test_file_name)
         }
 
     processed_dataset_train = ds_train.map(
