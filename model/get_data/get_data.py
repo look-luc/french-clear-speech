@@ -40,8 +40,7 @@ def get_data(
 
     ds_train = load_dataset(repo_id, split="train", token=hf_token)
     ds_test = load_dataset(repo_id, split="test", token=hf_token)
-    ds_train_file_name = ds_train["file_name"]
-    ds_test_file_name = ds_train["file_name"]
+
     ds_train = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
     ds_test = ds_test.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
 
@@ -55,6 +54,7 @@ def get_data(
     ds_test = ds_test.select_columns(["audio", "text"])
 
     def prepare_dataset(batch):
+        paths = []
         audio_arrays = []
         for item in batch["audio"]:
             if isinstance(item, dict) and "array" in item and item["array"] is not None:
@@ -62,6 +62,7 @@ def get_data(
                 orig_sr = item.get("sampling_rate", 16000)
             else:
                 audio_path = item["path"] if isinstance(item, dict) else item
+                paths.append(audio_path)
                 array, orig_sr = sf.read(audio_path)
 
             if array.ndim > 1:
@@ -91,7 +92,7 @@ def get_data(
 
         labels = processor.tokenizer(cleaned_texts).input_ids
         return {
-            "file_name": batch["audio"]["path"],
+            "file_name": paths,
             "input_features": input_features,
             "labels": labels,
         }
