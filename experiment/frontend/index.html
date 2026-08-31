@@ -1,19 +1,32 @@
+{% load static %}
 <!doctype html>
 <html>
     <head>
-        <title>My experiment</title>
+        <!--<link rel="icon" type="image/x-icon" />-->
+        <title>French Clear Speech</title>
+        <script src="https://unpkg.com/jspsych@latest"></script>
         <script src="https://unpkg.com/jspsych@latest"></script>
         <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@latest"></script>
         <script src="https://unpkg.com/@jspsych/plugin-initialize-microphone@latest"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-html-button-response@latest"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-html-audio-response@latest"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-audio-button-response@latest"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-external-html@latest"></script>
         <script src="https://unpkg.com/@jspsych/plugin-preload@latest"></script>
+        <script src="{% static 'stimuli.js' %}"></script>
 
         <link
             href="https://unpkg.com/jspsych@latest/css/jspsych.css"
             rel="stylesheet"
             type="text/css"
         />
-        <link href="index.css" rel="stylesheet" type="text/css" />
+        <link
+            href="{% static 'index.css' %}"
+            rel="stylesheet"
+            type="text/css"
+        />
     </head>
-    <body></body>
-    <script src="index.js"></script>
+    <body>
+        <script src="{% static 'index.js' %}"></script>
+    </body>
 </html>

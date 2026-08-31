@@ -1,0 +1,6 @@
+CER: {'tache 1': 0.04990953782050111 (4.991%), 'tache 2': 0.04879543417418186 (4.8795%)}
+almost 5 out of 100 characters need to be corrected for tache 1 while a little less than 5 out of 100 characters need to be corrected for tache 2. Pretty much
+the same amount
+
+WER: {'tache 1': 0.15583026268869607, 'tache 2': 0.15497979557879724}
+apply same reasoning from above, they are practically the same.

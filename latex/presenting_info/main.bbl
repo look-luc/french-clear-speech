@@ -1,4 +1,4 @@
-\begin{thebibliography}{14}
+\begin{thebibliography}{20}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -41,6 +41,19 @@ Bofeng Huang.
 \newblock Fine-tuned whisper-medium model for asr in {F}rench, 2022.
 \newblock URL \url{https://huggingface.co/bofenghuang/whisper-medium-french}.
 
+\bibitem[{Hugging Face}(2022)]{huggingface_evaluate}
+{Hugging Face}.
+\newblock Evaluate: {A} library for evaluating machine learning models and
+  datasets.
+\newblock \url{https://github.com/huggingface/evaluate}, 2022.
+
+\bibitem[{Hugging Face}(2023)]{hf_peft_lora_conceptual}
+{Hugging Face}.
+\newblock {PEFT} conceptual guide: {LoRA}.
+\newblock https://huggingface.co/docs/peft/main/en/conceptual\_guides/lora,
+  2023.
+\newblock Accessed: 2026-08-12.
+
 \bibitem[{Hugging Face}(2024{\natexlab{a}})]{hf-peft-lora-docs-v020}
 {Hugging Face}.
 \newblock {PEFT} documentation: {LoRA} usage ({v0.20.0}).
@@ -57,6 +70,12 @@ Bofeng Huang.
   2024{\natexlab{b}}.
 \newblock Accessed: 2026-08-12.
 
+\bibitem[Jurafsky and Martin(2023)]{jurafsky2023slp}
+Daniel Jurafsky and James~H. Martin.
+\newblock \emph{Speech and Language Processing: An Introduction to Natural
+  Language Processing, Computational Linguistics, and Speech Recognition}.
+\newblock Pearson, 3rd draft edition, 2023.
+
 \bibitem[Kolobov et~al.(2021)Kolobov, Okhapkina, Olga~Omelchishina, Bedyakin,
   Moshkin, Menshikov, and Mikhaylovskiy]{mediaspeech2021}
 Rostislav Kolobov, Olga Okhapkina, Andrey~Platunov Olga~Omelchishina, Roman
@@ -68,6 +87,21 @@ lookitsluc1.
 \newblock French cleer speech.
 \newblock https://huggingface.co/datasets/lookitsluc1/french\_cleer\_speech,
   2024.
+
+\bibitem[{NLPlanet}(2022)]{nlplanet_wer_intro}
+{NLPlanet}.
+\newblock Two minutes {NLP}: Intro to word error rate ({WER}) for
+  speech-to-text.
+\newblock
+  https://medium.com/nlplanet/two-minutes-nlp-intro-to-word-error-rate-wer-for-speech-to-text-fc17a98003ea,
+  2022.
+\newblock Accessed: 2026-08-12.
+
+\bibitem[Poniros(2022)]{jiwer2022}
+Nikolas Poniros.
+\newblock {jiwer}: {A} {P}ython package for calculating {WER}, {CER}, and
+  {MER}.
+\newblock \url{https://github.com/jitsi/jiwer}, 2022.
 
 \bibitem[Pratap et~al.(2020)Pratap, Xu, Sriram, Synnaeve, and
   Collobert]{Pratap2020MLSAL}
@@ -97,6 +131,15 @@ Elizabeth Salesky, Matthew Wiesner, Jacob Bremerman, Roldano Cattoni, Matteo
   Negri, Marco Turchi, Douglas~W. Oard, and Matt Post.
 \newblock Multilingual tedx corpus for speech recognition and translation.
 \newblock In \emph{Proceedings of Interspeech}, 2021.
+
+\bibitem[Tamanna(2025)]{tamanna2025deciphering}
+Tamanna.
+\newblock Deciphering accuracy: Evaluation metrics in {NLP} and {OCR} -- {A}
+  comparison of character error rate ({CER}) and word error rate ({WER}).
+\newblock
+  https://medium.com/@tam.tamanna18/deciphering-accuracy-evaluation-metrics-in-nlp-and-ocr-a-comparison-of-character-error-rate-cer-e97e809be0c8,
+  2025.
+\newblock Accessed: 2026-08-12.
 
 \bibitem[Wang et~al.(2021)Wang, Riviere, Lee, Wu, Talnikar, Haziza, Williamson,
   Pino, and Dupoux]{wang-etal-2021-voxpopuli}

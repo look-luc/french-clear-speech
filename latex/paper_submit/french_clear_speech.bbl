@@ -1,0 +1,85 @@
+\begin{thebibliography}{12}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+
+\bibitem[{AnderBois(2014)}]{anderbois_semantics_2014}
+AnderBois, Scott. 2014.
+\newblock The semantics of sluicing: {Beyond} truth-conditions.
+\newblock \emph{Language} 90(4). 887--926.
+\newblock \doi{10.1353/lan.2014.0110}.
+
+\bibitem[{Chomsky(1986)}]{chomsky_knowledge_1986}
+Chomsky, Noam. 1986.
+\newblock \emph{Knowledge of {language}: {Its} {nature}, {origin}, and {use}}.
+\newblock New York: Praeger.
+
+\bibitem[{Chomsky(1987)}]{chomsky_language_1987}
+Chomsky, Noam. 1987.
+\newblock \emph{Language and {problems} of {knowledge}: {The} {Managua}
+  {lectures}} (Current {Studies} in {Linguistics} 16).
+\newblock Cambridge, MA: MIT Press.
+
+\bibitem[{Claus et~al.(2017)Claus, Meijer, Repp \&
+  Krifka}]{claus_puzzling_2017}
+Claus, Berry, A.~Marlijn Meijer, Sophie Repp \& Manfred Krifka. 2017.
+\newblock Puzzling response particles: {An} experimental study on the {German}
+  answering system.
+\newblock \emph{Semantics and Pragmatics} 10(19). 1--51.
+\newblock \doi{10.3765/sp.10.19}.
+
+\bibitem[{Fodor \& Ferreira(1998)}]{fodor_reanalysis_1998}
+Fodor, Janet~Dean \& Fernanda Ferreira (eds.). 1998.
+\newblock \emph{Reanalysis in {sentence} {processing}} (Studies in
+  {Theoretical} {Psycholinguistics} 21).
+\newblock Dordrecht: Springer Netherlands.
+\newblock \doi{10.1007/978-94-015-9070-9}.
+
+\bibitem[{Goldsmith(2010)}]{Goldsmith+2010+19+52}
+Goldsmith, John. 2010.
+\newblock Tone and accent in {Tonga}.
+\newblock In George~N. Clements \& John Goldsmith (eds.), \emph{Autosegmental
+  studies in {Bantu} tone}, 19--52. Berlin: De Gruyter Mouton.
+\newblock \doi{10.1515/9783110864465.19}.
+
+\bibitem[{Haspelmath(1993)}]{haspelmath_1993}
+Haspelmath, Martin. 1993.
+\newblock \emph{A grammar of {L}ezgian} (Mouton Grammar Library 9).
+\newblock Berlin: Mouton de Gruyter.
+
+\bibitem[{Nee \& Remirez(2021)}]{nee_engaging_2021}
+Nee, Julia \& Emily Remirez. 2021.
+\newblock Engaging with linguistic justice through objectives-based learning
+  and independent research.
+\newblock \emph{Proceedings of the Linguistic Society of America (PLSA)} 6(2).
+  5108.
+\newblock \doi{10.3765/plsa.v6i2.5108}.
+
+\bibitem[{Ozernyi(2022{\natexlab{a}})}]{ozernyi_linguistic_2022}
+Ozernyi, Daniil~M. 2022{\natexlab{a}}.
+\newblock Linguistic transfer, or there and back again: {A} chronological study
+  of terminological meandering. {Poster presented at the 96th Annual Meeting of
+  the LSA}. \doi{10.13140/RG.2.2.27507.86560}.
+
+\bibitem[{Ozernyi(2022{\natexlab{b}})}]{ozernyi_rise_2022}
+Ozernyi, Daniil~M. 2022{\natexlab{b}}.
+\newblock The rise and fall of linguistic transfer. {Manuscript}.
+  {Northwestern} {University}. \doi{10.5281/zenodo.6237257}.
+
+\bibitem[{Sankoff \& Poplack(1981)}]{sankoff_formal_1981}
+Sankoff, David \& Shana Poplack. 1981.
+\newblock A formal grammar for code‐switching.
+\newblock \emph{Paper in Linguistics} 14(1). 3--45.
+\newblock \doi{10.1080/08351818109370523}.
+
+\bibitem[{Silk(2012)}]{silk_modality_2012}
+Silk, Alex. 2012.
+\newblock Modality, weights, and inconsistent premise sets.
+\newblock \emph{Semantics and Linguistic Theory (SALT)} 22. 43--64.
+\newblock \doi{10.3765/salt.v22i0.2641}.
+
+\end{thebibliography}

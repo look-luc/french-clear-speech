@@ -1,0 +1,53 @@
+.recording-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.rec-dot {
+  width: 14px;
+  height: 14px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+.rec-text {
+  font-weight: bold;
+  color: #ff3b30;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.75);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.timer{
+    text-align: center;
+    font-size: 14px;
+    margin-top: 0px;
+}
+
+.welcome-eng{
+    padding: 10px;
+    align-items: center;
+    margin: 40px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
