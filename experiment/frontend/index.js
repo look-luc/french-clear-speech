@@ -20,16 +20,77 @@ if (consentGranted !== "true") {
     consent_timestamp: sessionStorage.getItem("consent_timestamp"),
   });
   var timeline = [];
+  function parseFormHTML(htmlString) {
+    var div = document.createElement("div");
+    div.innerHTML = htmlString;
+    var formData = {};
+    var inputs = div.querySelectorAll("input, select, textarea");
+    inputs.forEach((input) => {
+      if (input.name) {
+        formData[input.name] = input.value;
+      }
+    });
+    return formData;
+  }
+
   var welcome = {
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="welcome-eng">
-        <p><strong>Welcome to the experiment.</strong></p>
-        <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
-        <p>Press any key to begin.</p>
-        <p><strong>Bienvenue a l'expérience.</strong></p>
-        <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
-        <p>Poussez n'importe quelle touche pour commencer.</p>
-      </div>`,
+    type: jsPsychSurveyHtmlForm,
+    html: `
+      <div class="welcome-container">
+        <div class="welcome-eng">
+          <p><strong>Welcome to the experiment.</strong></p>
+          <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
+          <p><strong>Bienvenue a l'expérience.</strong></p>
+          <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
+        </div>
+
+        <hr/>
+
+        <div class="demographics-form">
+          <div>
+            <label for="dob"><strong>Date of Birth / Date de naissance:</strong></label><br />
+            <input type="date" id="dob" name="dob" required/>
+          </div>
+
+          <div>
+            <label for="gender"><strong>Gender / Genre:</strong></label><br />
+              <option value="" disabled selected>Select an option / Choisissez une option</option>
+              <option value="Male">Male / Mâle</option>
+              <option value="Female">Female / Femelle</option>
+              <option value="Non-Binary">Non-Binary / Non-Binaire</option>
+              <option value="Prefer not to say">Prefer not to say / Je préfère ne pas le dire</option>
+              <option value="Other">Other / Autre</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    `,
+    button_label: "Continue / Continuer",
+    on_finish: function (data) {
+      var responses = data.response;
+      if (typeof responses === "string") {
+        responses = parseFormHTML(responses);
+      }
+
+      var dobString = responses.dob;
+      var genderVal = responses.gender;
+
+      var age = 0;
+      if (dobString) {
+        var birthDate = new Date(dobString);
+        var today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        var m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
+
+      jsPsych.data.addProperties({
+        age: age,
+        gender: genderVal,
+      });
+    },
   };
   timeline.push(welcome);
 
@@ -94,8 +155,9 @@ if (consentGranted !== "true") {
 
   async function upload_and_transcribe(audio_blob, metadata) {
     const form_data = new FormData();
-    form_data.append("audio", audio_blob, "recording.wav");
+    form_data.append("audio", audio_blob, "recording.webm");
     form_data.append("subject", metadata.subject);
+    form_data.append("age", metadata.age);
     form_data.append("trial_index", metadata.trial_index);
     form_data.append("stimulus", metadata.stimulus);
     form_data.append("custom_tag", metadata.custom_tag);
@@ -148,27 +210,39 @@ if (consentGranted !== "true") {
         return;
       }
 
-      let blob;
-      if (audio_blob instanceof Blob) {
-        blob = audio_blob;
-      } else if (
-        typeof audio_blob === "string" &&
-        audio_blob.startsWith("blob:")
-      ) {
-        const response = await fetch(audio_blob);
-        blob = await response.blob();
-      } else {
-        blob = base64_to_blob(audio_blob);
-      }
+      try {
+        let blob;
+        if (audio_blob instanceof Blob) {
+          blob = audio_blob;
+        } else if (
+          typeof audio_blob === "string" &&
+          audio_blob.startsWith("blob:")
+        ) {
+          const response = await fetch(audio_blob);
+          blob = await response.blob();
+        } else if (
+          typeof audio_blob === "string" &&
+          audio_blob.startsWith("data:")
+        ) {
+          blob = base64_to_blob(audio_blob);
+        } else {
+          blob = base64_to_blob(audio_blob);
+        }
 
-      const [transcription_text, confidence_val] = await upload_and_transcribe(
-        blob,
-        metadata,
-      );
-      jsPsych.finishTrial({
-        model_transcript: transcription_text,
-        confidence: confidence_val,
-      });
+        const [transcription_text, confidence_val] =
+          await upload_and_transcribe(blob, metadata);
+
+        jsPsych.finishTrial({
+          model_transcript: transcription_text,
+          confidence: confidence_val,
+        });
+      } catch (err) {
+        console.error("Transcription error:", err);
+        jsPsych.finishTrial({
+          model_transcript: "ERROR_TRANSCRIBING",
+          confidence: 0,
+        });
+      }
     },
   };
 
