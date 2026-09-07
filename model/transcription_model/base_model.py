@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import evaluate
+import pandas as pd
 import torch
 from datasets import concatenate_datasets
 from torch.utils.data import DataLoader
@@ -249,4 +250,19 @@ class French_Speech_text_base:
 
         cer_score = {"tache 1": cer_score_tache1, "tache 2": cer_score_tache2}
         wer_score = {"tache 1": wer_score_tache1, "tache 2": wer_score_tache2}
-        return f"CER: {cer_score}\nWER: {wer_score}\nlabel for tache 1: {references_tache1}\npredictions for tache 1: {predictions_tache1}\nlabel for tache 2: {references_tache2}\npredictions for tache 2: {predictions_tache2}"
+
+        predictions_data = [
+            {
+                "label for tache 1": references_tache1,
+                "predictions for tache 1": predictions_tache1
+            },
+            {
+                "nlabel for tache 2": references_tache2,
+                "predictions for tache 2": predictions_tache2
+            }
+        ]
+
+        predictions_data = pd.DataFrame(predictions_data)
+        predictions_data.to_csv("./seeing_outputs.csv", index=False)
+
+        return f"CER: {cer_score}\nWER: {wer_score}"
