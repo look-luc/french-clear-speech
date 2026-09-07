@@ -115,7 +115,6 @@ class French_Speech_text_base:
         )
 
         train_dataset, test_dataset = get_data(processor, feature_extractor)
-        print(f"{train_dataset["file_name"][:5]}")
         model.generation_config.max_length = None
 
         return processor, model, train_dataset, test_dataset
