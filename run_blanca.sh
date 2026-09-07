@@ -39,4 +39,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/li
 cd /projects/$USER/french-clear-speech
 
 MODEL_TYPE=${1:-train}
-python -u run.py -o "$MODEL_TYPE"
+NOISE_TYPE=${2:-studio}
+CUTOFF_FREQ=${3:-None}
+SNR_DB=${4:-None}
+python -u run.py -o "$MODEL_TYPE" "$NOISE_TYPE" "$CUTOFF_FREQ" "$SNR_DB"

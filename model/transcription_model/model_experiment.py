@@ -58,12 +58,34 @@ class French_Clear_Speech_Model:
     def _apply_acoustic_degradation(
         self,
         audio_array: torch.Tensor,
-        sample_rate: int,
+        noise_type:str,
         cutoff_freq: int | None,
         snr_db: int | None,
+        sample_rate: int=16000,
     ):
         degraded_audio = audio_array.detach().cpu().numpy()
 
+        def _simulate_noise_env(noise_type:str):
+            snr_db, cutoff_freq = 0, 0
+            if noise_type.lower() == "studio":
+                snr_db = 30
+                cutoff_freq = None
+            elif noise_type.lower() == "mild_office":
+                snr_db = 15
+                cutoff_freq = 3400
+            elif noise_type.lower() == "moderate_cafe":
+                snr_db = 10
+                cutoff_freq = 1500
+            elif noise_type.lower() == "severe_street":
+                snr_db = 0
+                cutoff_freq = 800
+            elif noise_type.lower() == "extreme_cocktail":
+                snr_db = -5
+                cutoff_freq = 500
+            return snr_db, cutoff_freq
+
+        if cutoff_freq is None and snr_db is None:
+            snr_db, cutoff_freq = _simulate_noise_env(noise_type)
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
             normal_cutoff = cutoff_freq / nyquist
@@ -90,13 +112,14 @@ class French_Clear_Speech_Model:
     def transcribe(
         self,
         audio_array: torch.Tensor,
+        noise_type: str="studio",
         sampling_rate: int = 16000,
         cutoff_freq: int | None = 1500,
         snr_db: int | None = 10,
-        temp: float = 0.5,
+        temp: float = 0,
     ):
         processed_audio = self._apply_acoustic_degradation(
-            audio_array, sampling_rate, cutoff_freq, snr_db
+            audio_array, noise_type, cutoff_freq, snr_db, sampling_rate
         )
 
         input_features = self.processor(

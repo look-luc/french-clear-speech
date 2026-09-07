@@ -1,17 +1,66 @@
 import os
 from pathlib import Path
 
+from datasets import concatenate_datasets
 from dotenv import load_dotenv
+from torch.utils.data import DataLoader
+
+from model.get_data.get_data import get_data
 
 from .graph_metric.graph import metrics_graph
-from .transcription_model.base_model import French_Speech_text_base
+from .transcription_model.base_model import French_Speech_text_base, simple_progress
 from .transcription_model.model import French_Speech_text
+from .transcription_model.model_experiment import (
+    French_Clear_Speech_Model as experiment_model,
+)
 
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
 
-def run_model(what_model:str):
-    if what_model == "base":
+def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
+    if what_model == "experiment":
+        outputs = []
+        model = experiment_model()
+        def collate_fn(batch):
+            input_list = [item["input_features"] for item in batch]
+            label_list = [item["labels"] for item in batch]
+
+            padded_inputs = model.processor.feature_extractor.pad(
+                [{"input_features": f} for f in input_list],
+                return_tensors="pt",
+            )
+
+            padded_labels = model.processor.tokenizer.pad(
+                [{"input_ids": label} for label in label_list],
+                return_tensors="pt",
+            )
+
+            labels_tensor = padded_labels["input_ids"].masked_fill(
+                padded_labels.attention_mask.ne(1), -100
+            )
+
+            if all(labels_tensor[:, 0] == model.processor.tokenizer.bos_token_id):
+                labels_tensor = labels_tensor[:, 1:]
+
+            return {
+                "input_features": padded_inputs["input_features"],
+                "labels": labels_tensor,
+            }
+        train_dataset, test_dataset = get_data(model.processor, model.feature_extractor)
+        combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format("torch")
+        dataloader = DataLoader(
+            combined_data,
+            batch_size=64,
+            collate_fn=collate_fn,
+            shuffle=False,
+            num_workers=2,
+            pin_memory=True,
+        )
+        for batch in simple_progress(dataloader, desc="testing noise"):
+            output = model.transcribe(batch, noise_type, cutoff_freq, snr_db)
+            outputs.append(output)
+        print(outputs)
+    elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
         output = ""
         try:
