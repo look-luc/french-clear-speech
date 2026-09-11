@@ -16,7 +16,7 @@ from .transcription_model.model_experiment import (
 )
 
 load_dotenv()
-hf_token = os.getenv("HF_TOKEN")
+hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
     if what_model == "experiment":

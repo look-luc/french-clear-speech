@@ -1,15 +1,20 @@
+import os
 import re
 from pathlib import Path
 
 import numpy as np
 import scipy.signal as signal
 import torch
+from dotenv import load_dotenv
 from peft import PeftModel
 from transformers import (
     AutoFeatureExtractor,
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
 )
+
+load_dotenv()
+hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
@@ -35,12 +40,12 @@ class French_Clear_Speech_Model:
 
     def _setup(self, is_fine_tuned: bool = False):
         processor = AutoProcessor.from_pretrained(
-            self.model_id, language="french", task="transcribe"
+            self.model_id, language="french", task="transcribe", token=hf_token
         )
-        feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
+        feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id, token=hf_token)
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            self.model_id, use_safetensors=True
+            self.model_id, use_safetensors=True, token=hf_token
         ).to(self.device)
 
         model.generation_config.language = None
