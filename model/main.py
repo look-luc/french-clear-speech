@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 from datasets import concatenate_datasets
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
@@ -19,7 +20,7 @@ hf_token = os.getenv("HF_TOKEN")
 
 def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
     if what_model == "experiment":
-        outputs = []
+        outputs = {}
         model = experiment_model()
         def collate_fn(batch):
             input_list = [item["input_features"] for item in batch]
@@ -56,9 +57,16 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             num_workers=2,
             pin_memory=True,
         )
-        for batch in simple_progress(dataloader, desc="testing noise"):
-            output = model.transcribe(batch, noise_type, cutoff_freq, snr_db)
-            outputs.append(output)
+        noise_types = ["studio","mild_office","moderate_cafe","severe_street","extreme_cocktail"]
+        for noise_type in noise_types:
+            for batch in simple_progress(dataloader, desc="testing noise"):
+                output, convidence = model.transcribe(batch["input_features"], noise_type, cutoff_freq, snr_db)
+                outputs[noise_type] = {"transcription": []}
+                outputs[noise_type] = {"confidence": []}
+                outputs[noise_type]["transcription"].append(output)
+                outputs[noise_type]["confidence"].append(convidence)
+            outputs[noise_type]["avg confidence"] = np.mean(np.array(outputs[noise_type]["confidence"]))
+
         print(outputs)
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
