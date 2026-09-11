@@ -21,7 +21,7 @@ root_dir = Path(__file__).resolve().parents[2]
 if str(python_dir) not in sys.path:
     sys.path.append(str(python_dir))
 
-from python.get_data.get_data import get_data
+from model.get_data.get_data import get_data
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")

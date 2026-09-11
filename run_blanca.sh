@@ -42,4 +42,4 @@ MODEL_TYPE=${1:-train}
 NOISE_TYPE=${2:-studio}
 CUTOFF_FREQ=${3:-None}
 SNR_DB=${4:-None}
-python -u run.py -o "$MODEL_TYPE" "$NOISE_TYPE" "$CUTOFF_FREQ" "$SNR_DB"
+python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --cutoff_freq "$CUTOFF_FREQ" --snr_db "$SNR_DB"
