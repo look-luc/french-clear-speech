@@ -34,46 +34,55 @@ if (consentGranted !== "true") {
   }
 
   var welcome = {
-    type: jsPsychSurveyHtmlForm,
-    html: `
-      <div class="welcome-container">
-        <div class="welcome-eng">
-          <p><strong>Welcome to the experiment.</strong></p>
-          <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
-          <p><strong>Bienvenue a l'expérience.</strong></p>
-          <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
-        </div>
-
-        <hr/>
-
-        <div class="demographics-form">
-          <div>
-            <label for="dob"><strong>Date of Birth / Date de naissance:</strong></label><br />
-            <input type="date" id="dob" name="dob" required/>
-          </div>
-
-          <div>
-            <label for="gender"><strong>Gender / Genre:</strong></label><br />
-              <option value="" disabled selected>Select an option / Choisissez une option</option>
-              <option value="Male">Male / Mâle</option>
-              <option value="Female">Female / Femelle</option>
-              <option value="Non-Binary">Non-Binary / Non-Binaire</option>
-              <option value="Prefer not to say">Prefer not to say / Je préfère ne pas le dire</option>
-              <option value="Other">Other / Autre</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    `,
-    button_label: "Continue / Continuer",
+    type: jsPsychSurvey,
+    survey_json: {
+      pages: [
+        {
+          elements: [
+            {
+              type: "html",
+              name: "welcome_text",
+              html: `
+                  <div class="welcome-eng">
+                    <p><strong>Welcome to the experiment.</strong></p>
+                    <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
+                    <p><strong>Bienvenue à l'expérience.</strong></p>
+                    <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
+                  </div>
+                <hr/>
+              `,
+            },
+            {
+              type: "text",
+              name: "dob",
+              title: "Date of Birth / Date de naissance:",
+              inputType: "date",
+              isRequired: true,
+            },
+            {
+              type: "radiogroup",
+              name: "gender",
+              title: "Select an option / Choisissez une option:",
+              isRequired: true,
+              choices: [
+                { value: "male", text: "Male / Mâle" },
+                { value: "female", text: "Female / Femelle" },
+                {
+                  value: "Non-Binary / Non-Binaire",
+                  text: "Non-Binary / Non-Binaire",
+                },
+                { value: "Other / Autre", text: "Other / Autre" },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    button_label_finish: "Continue / Continuer",
     on_finish: function (data) {
       var responses = data.response;
-      if (typeof responses === "string") {
-        responses = parseFormHTML(responses);
-      }
-
-      var dobString = responses.dob;
-      var genderVal = responses.gender;
+      var dobString = responses ? responses.dob : null;
+      var genderVal = responses ? responses.gender : null;
 
       var age = 0;
       if (dobString) {

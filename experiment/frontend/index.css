@@ -44,9 +44,9 @@
 }
 
 .welcome-eng{
-    padding: 10px;
+    padding: 100px;
     align-items: center;
-    margin: 40px;
+    /*margin: 100px;*/
     border: 1px solid #dcdcdc;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
