@@ -2,6 +2,7 @@ import os
 import re
 from pathlib import Path
 
+import evaluate
 import numpy as np
 import scipy.signal as signal
 import torch
@@ -20,6 +21,8 @@ python_dir = Path(__file__).resolve().parents[1]
 root_dir = Path(__file__).resolve().parents[2]
 script_path = Path(__file__).resolve().parent
 
+cer_metric = evaluate.load("cer")
+wer_metric = evaluate.load("wer")
 
 class French_Clear_Speech_Model:
     def __init__(
@@ -63,7 +66,7 @@ class French_Clear_Speech_Model:
     def _apply_acoustic_degradation(
         self,
         audio_array: torch.Tensor,
-        noise_type:str,
+        noise_type:str|None,
         cutoff_freq: int | None,
         snr_db: int | None,
         sample_rate: int|float=16000.0,
@@ -89,7 +92,7 @@ class French_Clear_Speech_Model:
                 cutoff_freq = 500
             return snr_db, cutoff_freq
 
-        if cutoff_freq is None and snr_db is None:
+        if noise_type is not None:
             snr_db, cutoff_freq = _simulate_noise_env(noise_type)
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
