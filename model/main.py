@@ -60,7 +60,12 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         noise_types = ["studio","mild_office","moderate_cafe","severe_street","extreme_cocktail"]
         for noise_type in noise_types:
             for batch in simple_progress(dataloader, desc="testing noise"):
-                output, convidence = model.transcribe(batch["input_features"], noise_type, cutoff_freq, snr_db)
+                output, convidence = model.transcribe(
+                    audio_array=batch["input_features"],
+                    noise_type=noise_type,
+                    cutoff_freq=cutoff_freq,
+                    snr_db=snr_db
+                )
                 outputs[noise_type] = {"transcription": []}
                 outputs[noise_type] = {"confidence": []}
                 outputs[noise_type]["transcription"].append(output)

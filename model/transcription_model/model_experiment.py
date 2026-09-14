@@ -66,7 +66,7 @@ class French_Clear_Speech_Model:
         noise_type:str,
         cutoff_freq: int | None,
         snr_db: int | None,
-        sample_rate: int=16000,
+        sample_rate: int|float=16000.0,
     ):
         degraded_audio = audio_array.detach().cpu().numpy()
 
