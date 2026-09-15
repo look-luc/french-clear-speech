@@ -132,14 +132,21 @@ class French_Clear_Speech_Model:
         processed_audio = self._apply_acoustic_degradation(
             audio_array, noise_type, cutoff_freq, snr_db, sampling_rate
         )
+        if isinstance(processed_audio, tuple):
+            processed_audio = processed_audio[0] if isinstance(processed_audio[0], np.ndarray) else processed_audio[1]
+        else:
+            processed_audio = processed_audio
+
+        processed_audio = np.asarray(processed_audio, dtype=np.float64)
+
+        if processed_audio.ndim == 1:
+            return processed_audio
+
+        processed_audio = np.mean(processed_audio, axis=-1)
 
         input_features = self.processor(
             processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
         ).input_features.to(self.device)
-
-        forced_decoder_ids = self.processor.get_decoder_prompt_ids(
-            language="french", task="transcribe"
-        )
 
         output_ids = self.model.generate(
             input_features=input_features,
