@@ -66,14 +66,14 @@ class French_Clear_Speech_Model:
     def _apply_acoustic_degradation(
         self,
         audio_array: torch.Tensor,
-        noise_type:str|None,
+        noise_type: str | None,
         cutoff_freq: int | None,
         snr_db: int | None,
-        sample_rate: int|float=16000.0,
+        sample_rate: int | float = 16000.0,
     ):
         degraded_audio = audio_array.detach().cpu().numpy()
 
-        def _simulate_noise_env(noise_type:str):
+        def _simulate_noise_env(noise_type: str):
             snr_db, cutoff_freq = 0, 0
             if noise_type.lower() == "studio":
                 snr_db = 30
@@ -94,6 +94,7 @@ class French_Clear_Speech_Model:
 
         if noise_type is not None:
             snr_db, cutoff_freq = _simulate_noise_env(noise_type)
+
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
             normal_cutoff = cutoff_freq / nyquist
@@ -101,19 +102,21 @@ class French_Clear_Speech_Model:
             sos = signal.butter(
                 N=5, Wn=normal_cutoff, btype="low", analog=False, output="sos"
             )
-            degraded_audio = signal.sosfilt(sos, degraded_audio)
+
+            degraded_audio = signal.sosfilt(sos, degraded_audio, axis=-1)
 
         if snr_db is not None:
             signal_power = np.mean(np.square(degraded_audio))
 
             if signal_power > 0:
                 noise_power = signal_power / (10 ** (snr_db / 10))
+                # Match full multi-dimensional array shape (64, 80, 3000)
                 noise = np.random.normal(
                     loc=0.0,
                     scale=np.sqrt(noise_power),
-                    size=len(degraded_audio),
+                    size=degraded_audio.shape,
                 )
-                degraded_audio = degraded_audio + noise
+                degraded_audio += noise
 
         return degraded_audio
 
