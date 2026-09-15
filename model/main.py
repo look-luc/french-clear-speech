@@ -59,6 +59,8 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         )
         noise_types = ["studio","mild_office","moderate_cafe","severe_street","extreme_cocktail"]
         for noise_type in noise_types:
+            confidence = []
+            outputs[noise_type] = {"transcription": []}
             for batch in simple_progress(dataloader, desc="testing noise"):
                 output, convidence = model.transcribe(
                     audio_array=batch["input_features"],
@@ -66,11 +68,9 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                     cutoff_freq=cutoff_freq,
                     snr_db=snr_db
                 )
-                outputs[noise_type] = {"transcription": []}
-                outputs[noise_type] = {"confidence": []}
                 outputs[noise_type]["transcription"].append(output)
-                outputs[noise_type]["confidence"].append(convidence)
-            outputs[noise_type]["avg confidence"] = np.mean(np.array(outputs[noise_type]["confidence"]))
+                confidence.append(convidence)
+            outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
         print(outputs)
     elif what_model == "base":
