@@ -88,11 +88,8 @@ if (consentGranted !== "true") {
       var age = 0;
       var today = new Date();
       age = today.getFullYear() - dobString.getFullYear();
-      var m = today.getMonth() - birthDate.getMonth();
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && today.getDate() < birthDate.getDate())
-      ) {
+      var m = today.getMonth() - dobString.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dobString.getDate())) {
         age--;
       }
 
