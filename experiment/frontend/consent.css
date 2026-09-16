@@ -1,11 +1,17 @@
 body {
     display: grid;
-    align-items: center;
-    text-align: left;
-    font-family: Arial, sans-serif;
-    max-width: 768px;
+    /* Use flexible columns or fit-content instead of fixed 500px */
+    grid-template-columns: repeat(2, 1fr);
+    justify-content: center;
+    align-items: start;
+    gap: 20px;
+
+    /* Increased max-width to give two side-by-side cards room */
+    max-width: 1050px;
     margin: 50px auto;
     padding: 0 20px;
+
+    font-family: Arial, sans-serif;
     line-height: 1.6;
     font-size: 18px;
 }

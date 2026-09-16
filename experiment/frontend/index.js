@@ -55,7 +55,7 @@ if (consentGranted !== "true") {
             {
               type: "text",
               name: "dob",
-              title: "Date of Birth / Date de naissance:",
+              title: "Date of Birth / Date de Naissance:",
               inputType: "date",
               isRequired: true,
             },
@@ -81,18 +81,19 @@ if (consentGranted !== "true") {
     button_label_finish: "Continue / Continuer",
     on_finish: function (data) {
       var responses = data.response;
-      var dobString = responses ? responses.dob : null;
+
+      var dobString = new Date(responses.dob);
       var genderVal = responses ? responses.gender : null;
 
       var age = 0;
-      if (dobString) {
-        var birthDate = new Date(dobString);
-        var today = new Date();
-        age = today.getFullYear() - birthDate.getFullYear();
-        var m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
+      var today = new Date();
+      age = today.getFullYear() - dobString.getFullYear();
+      var m = today.getMonth() - birthDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        age--;
       }
 
       jsPsych.data.addProperties({
