@@ -57,10 +57,23 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             num_workers=2,
             pin_memory=True,
         )
-        noise_types = ["studio","mild_office","moderate_cafe","severe_street","extreme_cocktail"]
+        noise_types = [
+            "broadcast",
+            "high_end_studio",
+            "studio",
+            "quiet_home",
+            "library",
+            "mild_office",
+            "moderate_cafe",
+            "severe_street",
+            "extreme_cocktail"
+        ]
         for noise_type in noise_types:
+            print("="*20)
+            print(f"\n|noise type: {noise_type}|\n")
+            print("="*20)
             confidence = []
-            outputs[noise_type] = {"transcription": []}
+            outputs[noise_type] = {}
             for batch in simple_progress(dataloader, desc="testing noise"):
                 output, convidence = model.transcribe(
                     audio_array=batch["input_features"],
@@ -68,7 +81,6 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                     cutoff_freq=cutoff_freq,
                     snr_db=snr_db
                 )
-                outputs[noise_type]["transcription"].append(output)
                 confidence.append(convidence)
             outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
