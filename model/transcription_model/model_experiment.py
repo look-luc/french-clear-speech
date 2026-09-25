@@ -77,36 +77,38 @@ class French_Clear_Speech_Model:
             snr_db, cutoff_freq = None, None
             match noise_type.lower():
                 case "broadcast":
-                    snr_db = 45
+                    # snr_db = 45
                     cutoff_freq = None
                 case "high_end_studio":
-                    snr_db = 35
+                    # snr_db = 35
                     cutoff_freq = 7000
                 case "studio":
-                    snr_db = 30
-                    cutoff_freq = None
+                    # snr_db = 30
+                    cutoff_freq = 6000
                 case "quiet_home":
-                    snr_db = 25
+                    # snr_db = 25
                     cutoff_freq = 5500
                 case "library":
-                    snr_db = 20
+                    # snr_db = 20
                     cutoff_freq = 4500
                 case "mild_office":
-                    snr_db = 15
+                    # snr_db = 15
                     cutoff_freq = 3400
                 case "moderate_cafe":
-                    snr_db = 10
+                    # snr_db = 10
                     cutoff_freq = 1500
                 case "severe_street":
-                    snr_db = 0
+                    # snr_db = 0
                     cutoff_freq = 800
                 case "extreme_cocktail":
-                    snr_db = -5
+                    # snr_db = -5
                     cutoff_freq = 500
-            return snr_db, cutoff_freq
+            # return snr_db, cutoff_freq
+            return cutoff_freq
 
         if noise_type is not None:
-            snr_db, cutoff_freq = _simulate_noise_env(noise_type)
+            # snr_db, cutoff_freq = _simulate_noise_env(noise_type)
+            cutoff_freq = _simulate_noise_env(noise_type)
 
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
