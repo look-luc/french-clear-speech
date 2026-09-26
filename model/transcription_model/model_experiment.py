@@ -119,8 +119,9 @@ class French_Clear_Speech_Model:
             )
 
             degraded_audio = signal.sosfilt(sos, degraded_audio, axis=-1)
-
-        if snr_db is not None:
+        if snr_db is None:
+            return degraded_audio
+        elif snr_db is not None:
             signal_power = np.mean(np.square(degraded_audio))
 
             if signal_power > 0:
@@ -133,7 +134,7 @@ class French_Clear_Speech_Model:
                 )
                 degraded_audio += noise
 
-        return degraded_audio
+            return degraded_audio
 
     def transcribe(
         self,
