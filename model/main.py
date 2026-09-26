@@ -70,31 +70,39 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             "extreme_cocktail"
         ]
         for noise_type in noise_types:
+            print("\n")
             print("="*20)
             print(f"\n|noise type: {noise_type}|\n")
             print("="*20)
             confidence = []
-            outputs[noise_type] = {}
+            outputs[noise_type] = {
+                "confidence": {},
+                "avg confidence": 0.0,
+            }
             for batch in simple_progress(dataloader, desc="testing noise"):
                 output, convidence = model.transcribe(
                     audio_array=batch["input_features"],
                     noise_type=noise_type,
                     cutoff_freq=cutoff_freq,
-                    snr_db=snr_db
+                    snr_db=snr_db,
                 )
                 confidence.append(convidence)
-                outputs[noise_type]["confidence"] = {model.model.decode(batch["labels"]): convidence}
+
+                decoded_label = model.processor.tokenizer.batch_decode(
+                    batch["labels"], skip_special_tokens=True
+                )
+
+                for label, conf in zip(decoded_label, convidence):
+                    outputs[noise_type]["confidence"][label] = conf
             outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
 
-        # Plot setup
         fig, ax = plt.subplots(figsize=(12, 8))
         x_positions = np.arange(len(noise_names))
         bar_width = 0.5
 
-        # Render bars
         ax.bar(
             x_positions,
             avg_confidences,
@@ -103,7 +111,6 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             edgecolor='grey'
         )
 
-        # Labels & Ticks
         ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
         ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
         ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
@@ -111,7 +118,37 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
-        print(outputs)
+        fig.savefig("avg_conf_bar.png", dpi=300, bbox_inches='tight')
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        for i, noise in enumerate(noise_names):
+            conf_dict = outputs[noise]["confidence"]
+
+            labels = conf_dict.keys()
+            scores = conf_dict.values()
+
+            x_pos = x_positions + (i - (len(noise_names) - 1) / 2) * bar_width
+
+            jitter = np.random.uniform(low=-0.15, high=0.15, size=len(x_pos))
+            jittered_x = x_pos + jitter
+
+            plt.scatter(
+                jittered_x,
+                scores,
+                alpha=0.7,
+                edgecolors='black',
+                linewidths=1,        # Border line thickness
+                label=noise
+            )
+        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
+        ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
+        ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xticks(range(len(noise_names)))
+        ax.set_xticklabels(noise_names, rotation=45, ha="right")
+
+        plt.tight_layout()
+        fig.savefig("individual_conf_bar.png", dpi=300, bbox_inches='tight')
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
         output = ""
