@@ -88,11 +88,14 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                 )
                 confidence.append(convidence)
 
+                labels_to_decode = batch["labels"].clone()
+                labels_to_decode[labels_to_decode == -100] = model.processor.tokenizer.pad_token_id
+
                 decoded_label = model.processor.tokenizer.batch_decode(
-                    batch["labels"], skip_special_tokens=True
+                    labels_to_decode, skip_special_tokens=True
                 )
 
-                for label, conf in zip(decoded_label, convidence):
+                for label, conf in zip(decoded_label, confidence):
                     outputs[noise_type]["confidence"][label] = conf
             outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
