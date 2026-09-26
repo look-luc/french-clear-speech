@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 from datasets import concatenate_datasets
 from dotenv import load_dotenv
@@ -85,6 +86,31 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                 outputs[noise_type]["confidence"] = {model.model.decode(batch["labels"]): convidence}
             outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
+        noise_names = list(outputs.keys())
+        avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
+
+        # Plot setup
+        fig, ax = plt.subplots(figsize=(12, 8))
+        x_positions = np.arange(len(noise_names))
+        bar_width = 0.5
+
+        # Render bars
+        ax.bar(
+            x_positions,
+            avg_confidences,
+            width=bar_width,
+            color='skyblue',
+            edgecolor='grey'
+        )
+
+        # Labels & Ticks
+        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
+        ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
+        ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(noise_names, rotation=45, ha="right")
+
+        plt.tight_layout()
         print(outputs)
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
