@@ -127,27 +127,32 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
 
         for i, noise in enumerate(noise_names):
             conf_dict = outputs[noise]["confidence"]
+            scores = list(conf_dict.values())
+            num_samples = len(scores)
 
-            labels = conf_dict.keys()
-            scores = conf_dict.values()
+            if num_samples == 0:
+                continue
 
-            x_pos = x_positions + (i - (len(noise_names) - 1) / 2) * bar_width
+            # Base x-position for this noise category column (e.g., index 0, 1, 2...)
+            category_x = x_positions[i]
 
-            jitter = np.random.uniform(low=-0.15, high=0.15, size=len(x_pos))
-            jittered_x = x_pos + jitter
+            # Create an x-coordinate array matching the number of scores in this category
+            jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
+            jittered_x = category_x + jitter
 
-            plt.scatter(
+            ax.scatter(
                 jittered_x,
                 scores,
                 alpha=0.7,
                 edgecolors='black',
-                linewidths=1,        # Border line thickness
+                linewidths=1,
                 label=noise
             )
+
         ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
-        ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
-        ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
-        ax.set_xticks(range(len(noise_names)))
+        ax.set_ylabel("Confidence", fontweight='bold', fontsize=12)
+        ax.set_title("Individual Confidences Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
