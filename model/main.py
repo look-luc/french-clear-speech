@@ -82,7 +82,7 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                     snr_db=snr_db
                 )
                 confidence.append(convidence)
-                outputs[noise_type]["confidence"] = {batch["labels"]: convidence}
+                outputs[noise_type]["confidence"] = {model.model.decode(batch["labels"]): convidence}
             outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
 
         print(outputs)

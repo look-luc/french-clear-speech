@@ -103,12 +103,10 @@ class French_Clear_Speech_Model:
                 case "extreme_cocktail":
                     # snr_db = -5
                     cutoff_freq = 500
-            # return snr_db, cutoff_freq
-            return cutoff_freq
+            return snr_db, cutoff_freq
 
         if noise_type is not None:
-            # snr_db, cutoff_freq = _simulate_noise_env(noise_type)
-            cutoff_freq = _simulate_noise_env(noise_type)
+            snr_db, cutoff_freq = _simulate_noise_env(noise_type)
 
         if cutoff_freq is not None:
             nyquist = 0.5 * sample_rate
