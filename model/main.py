@@ -121,7 +121,7 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
-        fig.savefig("avg_conf_bar.png", dpi=300, bbox_inches='tight')
+        fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches='tight')
 
         fig, ax = plt.subplots(figsize=(12, 8))
 
@@ -156,7 +156,7 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
-        fig.savefig("individual_conf_bar.png", dpi=300, bbox_inches='tight')
+        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches='tight')
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
         output = ""
