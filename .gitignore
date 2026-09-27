@@ -6,3 +6,4 @@ experiment/backend/config/.env
 whisper-french-experiment/
 whisper_merged/
 whisper_merged.zip
+sql/creating_table.sql

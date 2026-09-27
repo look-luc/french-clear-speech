@@ -4,6 +4,8 @@ CREATE TABLE public.data_response
 (
     primary_key serial NOT NULL,
     subject character varying(100) NOT NULL,
+	age smallint NOT NULL,
+	gender character varying(32) NOT NULL,
     trial_index character varying(30),
     stimulus character varying(128) NOT NULL,
     response text NOT NULL,

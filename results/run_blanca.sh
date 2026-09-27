@@ -11,6 +11,7 @@
 #SBATCH --qos=blanca-clearlab2
 #SBATCH --mail-type=END,FAIL
 
+export HF_TOKEN=$(grep -v '^#' .env | grep 'HUGGINGFACE_TOKEN=' | cut -d '=' -f2-)
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export TOKENIZERS_PARALLELISM=false
 export OPENBLAS_NUM_THREADS=1
@@ -39,4 +40,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/li
 cd /projects/$USER/french-clear-speech
 
 MODEL_TYPE=${1:-train}
-python -u run.py -o "$MODEL_TYPE"
+NOISE_TYPE=${2:-studio}
+CUTOFF_FREQ=${3:-None}
+SNR_DB=${4:-None}
+python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --cutoff_freq "$CUTOFF_FREQ" --snr_db "$SNR_DB"

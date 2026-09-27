@@ -15,6 +15,8 @@ def handle_transcription(request):
         return JsonResponse({"ERROR": "NO AUDIO FILE ATTACHED"}, status=400)
 
     subject = request.POST.get("subject", "")
+    age = request.POST.get("age", "")
+    gender = request.POST.get("gender", "")
     trial_index = request.POST.get("trial_index", "")
     stimulus = request.POST.get("stimulus", "")
     custom_tag = request.POST.get("custom_tag", "clear_speech")
@@ -25,9 +27,11 @@ def handle_transcription(request):
 
         record = audio_experiment_record.objects.create(
             subject=subject,
+            age=age,
+            gender=gender,
             trial_index=trial_index,
             stimulus=stimulus,
-            response=result,
+            response=uploaded_file,
             custom_tag=custom_tag
         )
 
