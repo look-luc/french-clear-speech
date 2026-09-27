@@ -71,9 +71,9 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
         ]
         for noise_type in noise_types:
             print("\n")
-            print("="*20)
+            print("|" + "="*len(noise_type) + "|")
             print(f"\n|noise type: {noise_type}|\n")
-            print("="*20)
+            print("|" + "="*len(noise_type) + "|")
             confidence = []
             outputs[noise_type] = {
                 "confidence": {},
