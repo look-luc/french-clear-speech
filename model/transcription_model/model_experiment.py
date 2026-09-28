@@ -153,11 +153,12 @@ class French_Clear_Speech_Model:
             nyquist = 0.5 * sample_rate
             normal_cutoff = cutoff_freq / nyquist
 
-            sos = signal.butter(
-                N=5, Wn=normal_cutoff, btype="low", analog=False, output="sos"
-            )
+            if 0 < normal_cutoff < 1.0:
+                sos = signal.butter(
+                    N=5, Wn=normal_cutoff, btype="low", analog=False, output="sos"
+                )
+                degraded_audio = signal.sosfilt(sos, degraded_audio, axis=-1)
 
-            degraded_audio = signal.sosfilt(sos, degraded_audio, axis=-1)
         if snr_db is None:
             return degraded_audio
         elif snr_db is not None:
