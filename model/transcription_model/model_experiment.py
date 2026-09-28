@@ -76,6 +76,45 @@ class French_Clear_Speech_Model:
         def _simulate_noise_env(noise_type: str):
             snr_db, cutoff_freq = None, None
             match noise_type.lower():
+                case "base":
+                    snr_db = None
+                    cutoff_freq = None
+                case "crystal_void":
+                    snr_db = 100
+                    cutoff_freq = 22050
+                case "absolute_acoustic":
+                    snr_db = 95
+                    cutoff_freq = 20500
+                case "studio_silence":
+                    snr_db = 90
+                    cutoff_freq = 18500
+                case "silver_spectrum":
+                    snr_db = 85
+                    cutoff_freq = 16500
+                case "broadcast_beam":
+                    snr_db = 80
+                    cutoff_freq = 14200
+                case "clear_horizon":
+                    snr_db = 75
+                    cutoff_freq = 12000
+                case "VINTAGE_MAGNETIC":
+                    snr_db = 70
+                    cutoff_freq = 10000
+                case "VINTAGE_MAGNETIC":
+                    snr_db = 65
+                    cutoff_freq = 8500
+                case "fog_on_the_wire":
+                    snr_db = 60
+                    cutoff_freq = 7000
+                case "shortwave_relay":
+                    snr_db = 55
+                    cutoff_freq = 5800
+                case "shortwave_relay":
+                    snr_db = 50
+                    cutoff_freq = 4500
+                case "whisper_in_the_rain":
+                    snr_db = 45
+                    cutoff_freq = 3500
                 case "broadcast":
                     snr_db = 45
                     cutoff_freq = None
