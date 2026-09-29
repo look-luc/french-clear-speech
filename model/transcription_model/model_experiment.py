@@ -217,17 +217,23 @@ class French_Clear_Speech_Model:
             skip_special_tokens=True,
         )
 
+        transcription_text = transcription_list[0] if transcription_list else ""
+        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr","").strip()
+        if hasattr(self.processor, "normalizer") and self.processor.normalizer is not None:
+            clean_transcription = self.processor.normalizer(clean_transcription)
+
         confidence = self.model.compute_transition_scores(
             output_ids.sequences,
             output_ids.scores,
             normalize_logits=True,
         )
-        avg_log_prob = torch.mean(confidence)
-        conf_score = torch.exp(avg_log_prob)
+        non_pad_mask = (confidence != float('-inf')) and (~torch.isnan(confidence))
+        valid_scores = confidence[non_pad_mask]
 
-        transcription_text = transcription_list[0] if transcription_list else ""
-        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr","").strip()
+        if valid_scores.numel() > 0:
+            avg_log_prob = torch.mean(valid_scores)
+            conf_score = torch.exp(avg_log_prob).item
+        else:
+            conf_score = 0.0
 
-        confidence_val = conf_score.item()
-
-        return clean_transcription, confidence_val
+        return clean_transcription, conf_score
