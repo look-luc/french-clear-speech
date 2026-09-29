@@ -100,13 +100,13 @@ class French_Clear_Speech_Model:
                 case "VINTAGE_MAGNETIC":
                     snr_db = 70
                     cutoff_freq = 10000
-                case "VINTAGE_MAGNETIC":
+                case "MAGNETIC":
                     snr_db = 65
                     cutoff_freq = 8500
                 case "fog_on_the_wire":
                     snr_db = 60
                     cutoff_freq = 7000
-                case "shortwave_relay":
+                case "relay":
                     snr_db = 55
                     cutoff_freq = 5800
                 case "shortwave_relay":
