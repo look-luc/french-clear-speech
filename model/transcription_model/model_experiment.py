@@ -225,7 +225,7 @@ class French_Clear_Speech_Model:
             output_ids.scores,
             normalize_logits=True,
         )
-        non_pad_mask = (confidence != float('-inf')) and (~torch.isnan(confidence))
+        non_pad_mask = (confidence != float('-inf')) & (~torch.isnan(confidence))
         valid_scores = confidence[non_pad_mask]
 
         if valid_scores.numel() > 0:
