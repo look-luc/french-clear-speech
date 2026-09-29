@@ -80,70 +80,68 @@ class French_Clear_Speech_Model:
                     snr_db = None
                     cutoff_freq = None
                 case "crystal_void":
-                    snr_db = 100
-                    cutoff_freq = 22050
+                    snr_db = 25 #100
+                    cutoff_freq = 8000 #22050
                 case "absolute_acoustic":
-                    snr_db = 95
-                    cutoff_freq = 20500
+                    snr_db = 20 #95
+                    cutoff_freq = 7000 #20500
                 case "studio_silence":
-                    snr_db = 90
-                    cutoff_freq = 18500
+                    snr_db = 18 #90
+                    cutoff_freq = 6000 #18500
                 case "silver_spectrum":
-                    snr_db = 85
-                    cutoff_freq = 16500
+                    snr_db = 15 #85
+                    cutoff_freq = 5200 #16500
                 case "broadcast_beam":
-                    snr_db = 80
-                    cutoff_freq = 14200
+                    snr_db = 12 #80
+                    cutoff_freq = 4500 #14200
                 case "clear_horizon":
-                    snr_db = 75
-                    cutoff_freq = 12000
-                case "VINTAGE_MAGNETIC":
-                    snr_db = 70
-                    cutoff_freq = 10000
-                case "MAGNETIC":
-                    snr_db = 65
-                    cutoff_freq = 8500
+                    snr_db = 10 # 75
+                    cutoff_freq = 3800 #12000
+                case "vintage_magnetic":
+                    snr_db = 8 # 70
+                    cutoff_freq = 3200 #10000
+                case "magnetic":
+                    snr_db = 6 # 65
+                    cutoff_freq = 2800 #8500
                 case "fog_on_the_wire":
-                    snr_db = 60
-                    cutoff_freq = 7000
+                    snr_db = 4 # 60
+                    cutoff_freq = 2400 #7000
                 case "relay":
-                    snr_db = 55
-                    cutoff_freq = 5800
+                    snr_db = 2 # 55
+                    cutoff_freq = 2000 #5800
                 case "shortwave_relay":
-                    snr_db = 50
-                    cutoff_freq = 4500
+                    snr_db = 50 # 50
+                    cutoff_freq = 4500 #4500
                 case "whisper_in_the_rain":
-                    snr_db = 45
-                    cutoff_freq = 3500
+                    snr_db = 0 # 45
+                    cutoff_freq = 1200 #3500
                 case "broadcast":
-                    snr_db = 45
-                    cutoff_freq = None
+                    snr_db = -4 # 45
+                    cutoff_freq = 1000 #None
                 case "high_end_studio":
-                    snr_db = 35
-                    cutoff_freq = 7000
+                    snr_db = -6 # 35
+                    cutoff_freq = 850 #7000
                 case "studio":
-                    snr_db = 30
-                    cutoff_freq = 6000
+                    snr_db = -8 # 30
+                    cutoff_freq = 700 #6000
                 case "quiet_home":
-                    snr_db = 25
-                    cutoff_freq = 5500
+                    snr_db = -10 # 25
+                    cutoff_freq = 600 #5500
                 case "library":
-                    snr_db = 20
-                    cutoff_freq = 4500
+                    snr_db = -12 # 20
+                    cutoff_freq = 500 #4500
                 case "mild_office":
-                    snr_db = 15
-                    cutoff_freq = 3400
+                    snr_db = -14 # 15
+                    cutoff_freq = 500 #3400
                 case "moderate_cafe":
-                    snr_db = 10
-                    cutoff_freq = 1500
-                case "cafe":
-                    snr_db = 5
+                    snr_db = -16 # 10
+                    cutoff_freq = 400 #1500
                 case "severe_street":
-                    snr_db = 0
-                    cutoff_freq = 800
+                    snr_db = -18 # 0
+                    cutoff_freq = 350 #800
                 case "extreme_cocktail":
-                    snr_db = -5
-                    cutoff_freq = 500
+                    snr_db = -20 # -5
+                    cutoff_freq = 300 #500
             return snr_db, cutoff_freq
 
         if noise_type is not None:

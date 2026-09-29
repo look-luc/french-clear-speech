@@ -72,6 +72,16 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             "relay",
             "shortwave_relay",
             "whisper_in_the_rain",
+            "broadcast",
+            "high_end_studio",
+            "studio",
+            "quiet_home",
+            "library",
+            "mild_office",
+            "moderate_cafe",
+            "cafe",
+            "severe_street",
+            "extreme_cocktail"
         ]
         for noise_type in noise_types:
             print("\n")
