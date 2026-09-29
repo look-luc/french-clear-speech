@@ -230,7 +230,7 @@ class French_Clear_Speech_Model:
 
         if valid_scores.numel() > 0:
             avg_log_prob = torch.mean(valid_scores)
-            conf_score = torch.exp(avg_log_prob).item
+            conf_score = torch.exp(avg_log_prob).item()
         else:
             conf_score = 0.0
 
