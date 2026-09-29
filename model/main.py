@@ -79,7 +79,6 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             "library",
             "mild_office",
             "moderate_cafe",
-            "cafe",
             "severe_street",
             "extreme_cocktail"
         ]
