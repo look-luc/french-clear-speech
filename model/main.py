@@ -93,24 +93,26 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                 "avg confidence": 0.0,
             }
             for batch in simple_progress(dataloader, desc="testing noise"):
-                output, convidence = model.transcribe(
+                transcriptions, batch_confidences = model.transcribe(
                     audio_array=batch["input_features"],
                     noise_type=noise_type,
                     cutoff_freq=cutoff_freq,
                     snr_db=snr_db,
                 )
-                confidence.append(convidence)
 
                 labels_to_decode = batch["labels"].clone()
                 labels_to_decode[labels_to_decode == -100] = model.processor.tokenizer.pad_token_id
 
-                decoded_label = model.processor.tokenizer.batch_decode(
+                decoded_labels = model.processor.tokenizer.batch_decode(
                     labels_to_decode, skip_special_tokens=True
                 )
 
-                for label, conf in zip(decoded_label, confidence):
+                # Align labels with per-sample batch confidences
+                for label, conf in zip(decoded_labels, batch_confidences):
                     outputs[noise_type]["confidence"][label] = conf
-            outputs[noise_type]["avg confidence"] = np.mean(np.array(confidence))
+                    confidence.append(conf)
+
+            outputs[noise_type]["avg confidence"] = np.mean(confidence)
 
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
