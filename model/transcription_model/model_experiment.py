@@ -176,27 +176,27 @@ class French_Clear_Speech_Model:
 
     def transcribe(
         self,
-        audio_array: torch.Tensor,
-        noise_type: str="studio",
+        audio_array: torch.Tensor | np.ndarray,
+        noise_type: str = "studio",
         sampling_rate: int = 16000,
         cutoff_freq: int | None = 1500,
         snr_db: int | None = 10,
-        temp: float = 0,
+        temp: float = 0.0,
     ):
         processed_audio = self._apply_acoustic_degradation(
             audio_array, noise_type, cutoff_freq, snr_db, sampling_rate
         )
         if isinstance(processed_audio, tuple):
-            processed_audio = processed_audio[0] if isinstance(processed_audio[0], np.ndarray) else processed_audio[1]
-        else:
-            processed_audio = processed_audio
+            processed_audio = (
+                processed_audio[0]
+                if isinstance(processed_audio[0], np.ndarray)
+                else processed_audio[1]
+            )
 
         processed_audio = np.asarray(processed_audio, dtype=np.float64)
 
-        if processed_audio.ndim == 1:
-            return processed_audio
-
-        processed_audio = np.mean(processed_audio, axis=-1)
+        if processed_audio.ndim > 1:
+            processed_audio = np.mean(processed_audio, axis=-1)
 
         input_features = self.processor(
             processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
@@ -206,7 +206,7 @@ class French_Clear_Speech_Model:
             input_features=input_features,
             output_scores=True,
             return_dict_in_generate=True,
-            do_sample=True,
+            do_sample=(temp > 0),
             temperature=temp,
         )
 
@@ -214,19 +214,20 @@ class French_Clear_Speech_Model:
             output_ids.sequences,
             skip_special_tokens=True,
         )
-
         transcription_text = transcription_list[0] if transcription_list else ""
-        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr","").strip()
+        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr", "").strip()
+
         if hasattr(self.processor, "normalizer") and self.processor.normalizer is not None:
             clean_transcription = self.processor.normalizer(clean_transcription)
 
-        confidence = self.model.compute_transition_scores(
+        transition_scores = self.model.compute_transition_scores(
             output_ids.sequences,
             output_ids.scores,
             normalize_logits=True,
         )
-        non_pad_mask = (confidence != float('-inf')) & (~torch.isnan(confidence))
-        valid_scores = confidence[non_pad_mask]
+
+        non_pad_mask = (transition_scores != float("-inf")) & (~torch.isnan(transition_scores))
+        valid_scores = transition_scores[non_pad_mask]
 
         if valid_scores.numel() > 0:
             avg_log_prob = torch.mean(valid_scores)
