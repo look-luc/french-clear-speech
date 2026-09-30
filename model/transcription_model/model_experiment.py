@@ -65,7 +65,7 @@ class French_Clear_Speech_Model:
 
     def _apply_acoustic_degradation(
         self,
-        audio_array: torch.Tensor,
+        audio_array: torch.Tensor | np.ndarray,
         noise_type: str | None,
         cutoff_freq: int | None,
         snr_db: int | None,
@@ -183,25 +183,25 @@ class French_Clear_Speech_Model:
         snr_db: int | None = 10,
         temp: float = 0.0,
     ):
-        processed_audio = self._apply_acoustic_degradation(
-            audio_array, noise_type, cutoff_freq, snr_db, sampling_rate
-        )
-        if isinstance(processed_audio, tuple):
-            processed_audio = (
-                processed_audio[0]
-                if isinstance(processed_audio[0], np.ndarray)
-                else processed_audio[1]
+        # 1. Apply degradation directly if raw audio; otherwise bypass feature matrix
+        if isinstance(audio_array, torch.Tensor):
+            audio_np = audio_array.detach().cpu().numpy()
+        else:
+            audio_np = np.asarray(audio_array)
+
+        # Apply acoustic filter if audio is 1D or 2D raw time-domain (samples x time)
+        if audio_np.ndim <= 2 and audio_np.shape[1] != 80:
+            processed_audio = self._apply_acoustic_degradation(
+                audio_np, noise_type, cutoff_freq, snr_db, sampling_rate
             )
+            input_features = self.processor(
+                processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
+            ).input_features.to(self.device)
+        else:
+            # Pre-computed log-mel spectrogram features (batch_size, 80, 3000)
+            input_features = torch.as_tensor(audio_np, device=self.device)
 
-        processed_audio = np.asarray(processed_audio, dtype=np.float64)
-
-        if processed_audio.ndim > 1:
-            processed_audio = np.mean(processed_audio, axis=-1)
-
-        input_features = self.processor(
-            processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
-        ).input_features.to(self.device)
-
+        # 2. Generate outputs
         output_ids = self.model.generate(
             input_features=input_features,
             output_scores=True,
@@ -210,29 +210,34 @@ class French_Clear_Speech_Model:
             temperature=temp,
         )
 
+        # 3. Decode transcriptions for the full batch
         transcription_list = self.processor.batch_decode(
             output_ids.sequences,
             skip_special_tokens=True,
         )
-        transcription_text = transcription_list[0] if transcription_list else ""
-        clean_transcription = re.sub(r"<\|.*?\|>|\[.*?\]", "", transcription_text).replace("fr", "").strip()
 
-        if hasattr(self.processor, "normalizer") and self.processor.normalizer is not None:
-            clean_transcription = self.processor.normalizer(clean_transcription)
+        clean_transcriptions = [
+            re.sub(r"<\|.*?\|>|\[.*?\]", "", t).replace("fr", "").strip()
+            for t in transcription_list
+        ]
 
+        # 4. Compute per-sample transition scores
         transition_scores = self.model.compute_transition_scores(
             output_ids.sequences,
             output_ids.scores,
             normalize_logits=True,
         )
 
-        non_pad_mask = (transition_scores != float("-inf")) & (~torch.isnan(transition_scores))
-        valid_scores = transition_scores[non_pad_mask]
+        # Strip prompt prefix token scores if present
+        conf_scores = []
+        for seq_scores in transition_scores:
+            valid_mask = (seq_scores != float("-inf")) & (~torch.isnan(seq_scores))
+            valid_tok_scores = seq_scores[valid_mask]
 
-        if valid_scores.numel() > 0:
-            avg_log_prob = torch.mean(valid_scores)
-            conf_score = torch.exp(avg_log_prob).item()
-        else:
-            conf_score = 0.0
+            if valid_tok_scores.numel() > 0:
+                sample_conf = torch.exp(torch.mean(valid_tok_scores)).item()
+            else:
+                sample_conf = 0.0
+            conf_scores.append(sample_conf)
 
-        return clean_transcription, conf_score
+        return clean_transcriptions, conf_scores
