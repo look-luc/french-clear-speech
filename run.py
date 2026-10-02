@@ -7,6 +7,8 @@ from model.main import run_model
 
 
 def parse_multiple_types(value):
+    if value is None or str(value).strip().lower() in ("none", "null", ""):
+        return None
     try:
         return int(value)
     except ValueError:

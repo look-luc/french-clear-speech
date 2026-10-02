@@ -4,7 +4,6 @@ from pathlib import Path
 
 import evaluate
 import numpy as np
-import scipy.signal as signal
 import torch
 from dotenv import load_dotenv
 from peft import PeftModel
@@ -63,63 +62,62 @@ class French_Clear_Speech_Model:
         else:
             return processor, feature_extractor, model
 
-    def _get_noise_params(self, noise_type: str | None) -> tuple[float | None, int | None]: # returns snr_db and cutoff_freq in that order
+    def _get_noise_params(self, noise_type: str | None) -> float|int|None
         if noise_type is None:
             return None, None
 
         match noise_type.lower():
             case "base":
-                return None, None
+                return None
             case "crystal_void":
-                return 25, 8000
+                return 50
             case "absolute_acoustic":
-                return 20, 7000
+                return 45
             case "studio_silence":
-                return 18, 6000
+                return 40
             case "silver_spectrum":
-                return 15, 5200
+                return 35
             case "broadcast_beam":
-                return 12, 4500
+                return 30
             case "clear_horizon":
-                return 10, 3800
+                return 25
             case "vintage_magnetic":
-                return 8, 3200
+                return 20
             case "magnetic":
-                return 6, 2800
+                return 15
             case "fog_on_the_wire":
-                return 4, 2400
+                return 10
             case "relay":
-                return 2, 2000
+                return 5
             case "shortwave_relay":
-                return 50, 4500
+                return 0
             case "whisper_in_the_rain":
-                return 0, 1200
+                return -5
             case "broadcast":
-                return -4, 1000
+                return -10
             case "high_end_studio":
-                return -6, 850
+                return -15
             case "studio":
-                return -8, 700
+                return -20
             case "quiet_home":
-                return -10, 600
+                return -25
             case "library":
-                return -12, 500
+                return -30
             case "mild_office":
-                return -14, 500
+                return -35
             case "moderate_cafe":
-                return -16, 400
+                return -40
             case "severe_street":
-                return -18, 350
+                return -45
             case "extreme_cocktail":
-                return -20, 300
+                return -50
             case _:
-                return None, None
+                return  None
 
     def _apply_acoustic_degradation(
         self,
         input_features: torch.Tensor,
         noise_type: str | None = None,
-        cutoff_freq: int | None = None,
         snr_db: float | None = None,
         sampling_rate: int = 16000,
     ) -> torch.Tensor:
@@ -130,11 +128,6 @@ class French_Clear_Speech_Model:
             cutoff_freq = cutoff_freq if cutoff_freq is not None else env_cutoff
 
         degraded = input_features.clone()
-
-        if cutoff_freq is not None:
-            cutoff_bin = int((cutoff_freq / (sampling_rate / 2.0)) * 80)
-            cutoff_bin = max(1, min(80, cutoff_bin))
-            degraded[:, cutoff_bin:, :] = -80.0  # Log-mel floor
 
         if snr_db is not None:
             noise_std = 10.0 ** (-snr_db / 20.0)
@@ -148,8 +141,7 @@ class French_Clear_Speech_Model:
         audio_array: torch.Tensor | np.ndarray,
         noise_type: str = "studio",
         sampling_rate: int = 16000,
-        cutoff_freq: int | None = None,
-        snr_db: int | None = None,
+        snr_db: int | float | None = None,
         temp: float = 0.0,
     ):
         input_features = torch.as_tensor(audio_array, device=self.device).float()
