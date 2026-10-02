@@ -63,154 +63,113 @@ class French_Clear_Speech_Model:
         else:
             return processor, feature_extractor, model
 
+    def _get_noise_params(self, noise_type: str | None) -> tuple[float | None, int | None]: # returns snr_db and cutoff_freq in that order
+        if noise_type is None:
+            return None, None
+
+        match noise_type.lower():
+            case "base":
+                return None, None
+            case "crystal_void":
+                return 25, 8000
+            case "absolute_acoustic":
+                return 20, 7000
+            case "studio_silence":
+                return 18, 6000
+            case "silver_spectrum":
+                return 15, 5200
+            case "broadcast_beam":
+                return 12, 4500
+            case "clear_horizon":
+                return 10, 3800
+            case "vintage_magnetic":
+                return 8, 3200
+            case "magnetic":
+                return 6, 2800
+            case "fog_on_the_wire":
+                return 4, 2400
+            case "relay":
+                return 2, 2000
+            case "shortwave_relay":
+                return 50, 4500
+            case "whisper_in_the_rain":
+                return 0, 1200
+            case "broadcast":
+                return -4, 1000
+            case "high_end_studio":
+                return -6, 850
+            case "studio":
+                return -8, 700
+            case "quiet_home":
+                return -10, 600
+            case "library":
+                return -12, 500
+            case "mild_office":
+                return -14, 500
+            case "moderate_cafe":
+                return -16, 400
+            case "severe_street":
+                return -18, 350
+            case "extreme_cocktail":
+                return -20, 300
+            case _:
+                return None, None
+
     def _apply_acoustic_degradation(
         self,
-        audio_array: torch.Tensor | np.ndarray,
-        noise_type: str | None,
-        cutoff_freq: int | None,
-        snr_db: int | None,
-        sample_rate: int | float = 16000.0,
-    ):
-        degraded_audio = audio_array.detach().cpu().numpy()
-
-        def _simulate_noise_env(noise_type: str):
-            snr_db, cutoff_freq = None, None
-            match noise_type.lower():
-                case "base":
-                    snr_db = None
-                    cutoff_freq = None
-                case "crystal_void":
-                    snr_db = 25 #100
-                    cutoff_freq = 8000 #22050
-                case "absolute_acoustic":
-                    snr_db = 20 #95
-                    cutoff_freq = 7000 #20500
-                case "studio_silence":
-                    snr_db = 18 #90
-                    cutoff_freq = 6000 #18500
-                case "silver_spectrum":
-                    snr_db = 15 #85
-                    cutoff_freq = 5200 #16500
-                case "broadcast_beam":
-                    snr_db = 12 #80
-                    cutoff_freq = 4500 #14200
-                case "clear_horizon":
-                    snr_db = 10 # 75
-                    cutoff_freq = 3800 #12000
-                case "vintage_magnetic":
-                    snr_db = 8 # 70
-                    cutoff_freq = 3200 #10000
-                case "magnetic":
-                    snr_db = 6 # 65
-                    cutoff_freq = 2800 #8500
-                case "fog_on_the_wire":
-                    snr_db = 4 # 60
-                    cutoff_freq = 2400 #7000
-                case "relay":
-                    snr_db = 2 # 55
-                    cutoff_freq = 2000 #5800
-                case "shortwave_relay":
-                    snr_db = 50 # 50
-                    cutoff_freq = 4500 #4500
-                case "whisper_in_the_rain":
-                    snr_db = 0 # 45
-                    cutoff_freq = 1200 #3500
-                case "broadcast":
-                    snr_db = -4 # 45
-                    cutoff_freq = 1000 #None
-                case "high_end_studio":
-                    snr_db = -6 # 35
-                    cutoff_freq = 850 #7000
-                case "studio":
-                    snr_db = -8 # 30
-                    cutoff_freq = 700 #6000
-                case "quiet_home":
-                    snr_db = -10 # 25
-                    cutoff_freq = 600 #5500
-                case "library":
-                    snr_db = -12 # 20
-                    cutoff_freq = 500 #4500
-                case "mild_office":
-                    snr_db = -14 # 15
-                    cutoff_freq = 500 #3400
-                case "moderate_cafe":
-                    snr_db = -16 # 10
-                    cutoff_freq = 400 #1500
-                case "severe_street":
-                    snr_db = -18 # 0
-                    cutoff_freq = 350 #800
-                case "extreme_cocktail":
-                    snr_db = -20 # -5
-                    cutoff_freq = 300 #500
-            return snr_db, cutoff_freq
-
+        input_features: torch.Tensor,
+        noise_type: str | None = None,
+        cutoff_freq: int | None = None,
+        snr_db: float | None = None,
+        sampling_rate: int = 16000,
+    ) -> torch.Tensor:
+        """Calculates and applies lowpass frequency masking and noise injection on log-mel tensors."""
         if noise_type is not None:
-            snr_db, cutoff_freq = _simulate_noise_env(noise_type)
+            env_snr, env_cutoff = self._get_noise_params(noise_type)
+            snr_db = snr_db if snr_db is not None else env_snr
+            cutoff_freq = cutoff_freq if cutoff_freq is not None else env_cutoff
+
+        degraded = input_features.clone()
 
         if cutoff_freq is not None:
-            nyquist = 0.5 * sample_rate
-            normal_cutoff = cutoff_freq / nyquist
+            cutoff_bin = int((cutoff_freq / (sampling_rate / 2.0)) * 80)
+            cutoff_bin = max(1, min(80, cutoff_bin))
+            degraded[:, cutoff_bin:, :] = -80.0  # Log-mel floor
 
-            if 0 < normal_cutoff < 1.0:
-                sos = signal.butter(
-                    N=5, Wn=normal_cutoff, btype="low", analog=False, output="sos"
-                )
-                degraded_audio = signal.sosfilt(sos, degraded_audio, axis=-1)
+        if snr_db is not None:
+            noise_std = 10.0 ** (-snr_db / 20.0)
+            noise = torch.randn_like(degraded) * noise_std
+            degraded = degraded + noise
 
-        if snr_db is None:
-            return degraded_audio
-        elif snr_db is not None:
-            signal_power = np.mean(np.square(degraded_audio))
-
-            if signal_power > 0:
-                noise_power = signal_power / (10 ** (snr_db / 10))
-                # Match full multi-dimensional array shape (64, 80, 3000)
-                noise = np.random.normal(
-                    loc=0.0,
-                    scale=np.sqrt(noise_power),
-                    size=degraded_audio.shape,
-                )
-                degraded_audio += noise
-
-            return degraded_audio
+        return degraded
 
     def transcribe(
         self,
         audio_array: torch.Tensor | np.ndarray,
         noise_type: str = "studio",
         sampling_rate: int = 16000,
-        cutoff_freq: int | None = 1500,
-        snr_db: int | None = 10,
+        cutoff_freq: int | None = None,
+        snr_db: int | None = None,
         temp: float = 0.0,
     ):
-        # 1. Apply degradation directly if raw audio; otherwise bypass feature matrix
-        if isinstance(audio_array, torch.Tensor):
-            audio_np = audio_array.detach().cpu().numpy()
-        else:
-            audio_np = np.asarray(audio_array)
+        input_features = torch.as_tensor(audio_array, device=self.device).float()
 
-        # Apply acoustic filter if audio is 1D or 2D raw time-domain (samples x time)
-        if audio_np.ndim <= 2 and audio_np.shape[1] != 80:
-            processed_audio = self._apply_acoustic_degradation(
-                audio_np, noise_type, cutoff_freq, snr_db, sampling_rate
-            )
-            input_features = self.processor(
-                processed_audio, sampling_rate=sampling_rate, return_tensors="pt"
-            ).input_features.to(self.device)
-        else:
-            # Pre-computed log-mel spectrogram features (batch_size, 80, 3000)
-            input_features = torch.as_tensor(audio_np, device=self.device)
-
-        # 2. Generate outputs
-        output_ids = self.model.generate(
+        degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
+            noise_type=noise_type,
+            cutoff_freq=cutoff_freq,
+            snr_db=snr_db,
+            sampling_rate=sampling_rate,
+        )
+
+        output_ids = self.model.generate(
+            input_features=degraded_features,
             output_scores=True,
             return_dict_in_generate=True,
             do_sample=(temp > 0),
             temperature=temp,
         )
 
-        # 3. Decode transcriptions for the full batch
         transcription_list = self.processor.batch_decode(
             output_ids.sequences,
             skip_special_tokens=True,
@@ -221,14 +180,12 @@ class French_Clear_Speech_Model:
             for t in transcription_list
         ]
 
-        # 4. Compute per-sample transition scores
         transition_scores = self.model.compute_transition_scores(
             output_ids.sequences,
             output_ids.scores,
             normalize_logits=True,
         )
 
-        # Strip prompt prefix token scores if present
         conf_scores = []
         for seq_scores in transition_scores:
             valid_mask = (seq_scores != float("-inf")) & (~torch.isnan(seq_scores))
