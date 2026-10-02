@@ -62,8 +62,8 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             "base",
             "crystal_void",
             "clear_horizon",
-            "broadcast",
-            "moderate_cafe",
+            "shortwave_relay",
+            "quiet_home",
             "extreme_cocktail"
         ]
         for noise_type in noise_types:

@@ -1,5 +1,7 @@
 #!/bin/bash
-#SBATCH --gres=gpu:a100_3g.20gb:1
+#SBATCH --partition=al40
+#SBATCH --qos=gpu-normal
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -9,16 +11,15 @@
 #SBATCH --job-name=french_clear_speech
 #SBATCH --partition=aa100
 #SBATCH --account=ucb-general
-#SBATCH --qos=gpu-testing
 #SBATCH --mail-type=END,FAIL
 
+export HF_TOKEN=$(grep -v '^#' .env | grep 'HUGGINGFACE_TOKEN=' | cut -d '=' -f2-)
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export TOKENIZERS_PARALLELISM=false
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-# Redirect temporary IPC socket directory away from /scratch to local node storage
 export TMPDIR="/tmp"
 export TMP="/tmp"
 export TEMP="/tmp"
@@ -41,4 +42,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/li
 cd /projects/$USER/french-clear-speech
 
 MODEL_TYPE=${1:-train}
-python -u run.py -o "$MODEL_TYPE"
+NOISE_TYPE=${2:-studio}
+CUTOFF_FREQ=${3:-None}
+SNR_DB=${4:-None}
+python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --cutoff_freq "$CUTOFF_FREQ" --snr_db "$SNR_DB"
