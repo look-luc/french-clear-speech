@@ -157,7 +157,6 @@ class French_Clear_Speech_Model:
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
             noise_type=noise_type,
-            cutoff_freq=cutoff_freq,
             snr_db=snr_db,
             sampling_rate=sampling_rate,
         )
