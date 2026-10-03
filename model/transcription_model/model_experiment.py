@@ -16,12 +16,11 @@ from transformers import (
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
-python_dir = Path(__file__).resolve().parents[1]
-root_dir = Path(__file__).resolve().parents[2]
 script_path = Path(__file__).resolve().parent
 
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
+
 
 class French_Clear_Speech_Model:
     def __init__(
@@ -30,10 +29,9 @@ class French_Clear_Speech_Model:
         path_to_model: str = f"{script_path}/whisper-french-experiment",
         is_fine_tuned: bool = False,
     ) -> None:
-        torch.backends.cudnn.enabled = False
-
         self.model_id = model_id
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.dtype = torch.float16 if self.device == "cuda" else torch.float32
         self.path_to_model = path_to_model
 
         self.processor, self.feature_extractor, self.model = self._setup(
@@ -44,10 +42,16 @@ class French_Clear_Speech_Model:
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe", token=hf_token
         )
-        feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id, token=hf_token)
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            self.model_id, token=hf_token
+        )
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            self.model_id, use_safetensors=True, token=hf_token
+            self.model_id,
+            torch_dtype=self.dtype,
+            low_cpu_mem_usage=True,
+            use_safetensors=True,
+            token=hf_token,
         ).to(self.device)
 
         model.generation_config.language = None
@@ -62,7 +66,9 @@ class French_Clear_Speech_Model:
         else:
             return processor, feature_extractor, model
 
-    def _get_noise_params(self, noise_type: str | None) -> float|int|None
+    def _get_noise_params(
+        self, noise_type: str | None
+    ) -> float | int | None:
         if noise_type is None:
             return None, None
 
@@ -112,7 +118,7 @@ class French_Clear_Speech_Model:
             case "extreme_cocktail":
                 return -50
             case _:
-                return  None
+                return None
 
     def _apply_acoustic_degradation(
         self,
@@ -123,9 +129,8 @@ class French_Clear_Speech_Model:
     ) -> torch.Tensor:
         """Calculates and applies lowpass frequency masking and noise injection on log-mel tensors."""
         if noise_type is not None:
-            env_snr, env_cutoff = self._get_noise_params(noise_type)
+            env_snr= self._get_noise_params(noise_type)
             snr_db = snr_db if snr_db is not None else env_snr
-            cutoff_freq = cutoff_freq if cutoff_freq is not None else env_cutoff
 
         degraded = input_features.clone()
 
@@ -136,15 +141,18 @@ class French_Clear_Speech_Model:
 
         return degraded
 
+    @torch.inference_mode()
     def transcribe(
         self,
         audio_array: torch.Tensor | np.ndarray,
         noise_type: str = "studio",
-        sampling_rate: int = 16000,
         snr_db: int | float | None = None,
+        sampling_rate: int = 16000,
         temp: float = 0.0,
     ):
-        input_features = torch.as_tensor(audio_array, device=self.device).float()
+        input_features = torch.as_tensor(
+            audio_array, device=self.device, dtype=self.dtype
+        )
 
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from datasets import concatenate_datasets
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
@@ -19,10 +20,11 @@ from .transcription_model.model_experiment import (
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
-def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
+def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
         model = experiment_model()
+
         def collate_fn(batch):
             input_list = [item["input_features"] for item in batch]
             label_list = [item["labels"] for item in batch]
@@ -48,59 +50,62 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                 "input_features": padded_inputs["input_features"],
                 "labels": labels_tensor,
             }
-        train_dataset, test_dataset = get_data(model.processor, model.feature_extractor)
-        combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format("torch")
+
+        train_dataset, test_dataset = get_data(
+            model.processor, model.feature_extractor
+        )
+        combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format(
+            "torch"
+        )
         dataloader = DataLoader(
             combined_data,
             batch_size=64,
             collate_fn=collate_fn,
             shuffle=False,
-            num_workers=2,
+            num_workers=4,
             pin_memory=True,
         )
+
         noise_types = [
             "base",
             "crystal_void",
             "clear_horizon",
             "shortwave_relay",
             "quiet_home",
-            "extreme_cocktail"
+            "extreme_cocktail",
         ]
-        for noise_type in noise_types:
-            print("\n")
-            print("|" + "="*(len(noise_type)+len("noise type: ")) + "|")
-            print(f"\n|noise type: {noise_type}|\n")
-            print("|" + "="*(len(noise_type)+len("noise type: ")) + "|")
-            confidence = []
-            outputs[noise_type] = {
-                "confidence": {},
-                "avg confidence": 0.0,
-            }
-            for batch in simple_progress(dataloader, desc="testing noise"):
-                transcriptions, batch_confidences = model.transcribe(
-                    audio_array=batch["input_features"],
-                    noise_type=noise_type,
-                    cutoff_freq=cutoff_freq,
-                    snr_db=snr_db,
+
+        with torch.inference_mode():
+            for n_type in noise_types:
+                print("\n")
+                print("|" + "=" * (len(n_type) + len("noise type: ")) + "|")
+                print(f"\n|noise type: {n_type}|\n")
+                print("|" + "=" * (len(n_type) + len("noise type: ")) + "|")
+
+                confidence_scores = []
+                outputs[n_type] = {
+                    "confidence_list": [],
+                    "avg confidence": 0.0,
+                }
+
+                for batch in simple_progress(dataloader, desc="testing noise"):
+                    transcriptions, batch_confidences = model.transcribe(
+                        audio_array=batch["input_features"],
+                        noise_type=n_type,
+                        snr_db=snr_db,
+                    )
+
+                    outputs[n_type]["confidence_list"].extend(batch_confidences)
+                    confidence_scores.extend(batch_confidences)
+
+                outputs[n_type]["avg confidence"] = (
+                    np.mean(confidence_scores) if confidence_scores else 0.0
                 )
-
-                labels_to_decode = batch["labels"].clone()
-                labels_to_decode[labels_to_decode == -100] = model.processor.tokenizer.pad_token_id
-
-                decoded_labels = model.processor.tokenizer.batch_decode(
-                    labels_to_decode, skip_special_tokens=True
-                )
-
-                # Align labels with per-sample batch confidences
-                for label, conf in zip(decoded_labels, batch_confidences):
-                    outputs[noise_type]["confidence"][label] = conf
-                    confidence.append(conf)
-
-            outputs[noise_type]["avg confidence"] = np.mean(confidence)
 
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
 
+        # Bar chart
         fig, ax = plt.subplots(figsize=(12, 8))
         x_positions = np.arange(len(noise_names))
         bar_width = 0.5
@@ -109,33 +114,32 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
             x_positions,
             avg_confidences,
             width=bar_width,
-            color='skyblue',
-            edgecolor='grey'
+            color="skyblue",
+            edgecolor="grey",
         )
 
-        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
-        ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
-        ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Average Confidence", fontweight="bold", fontsize=12)
+        ax.set_title(
+            "Model Confidence Across Noise Types", fontweight="bold", fontsize=14
+        )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
-        fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches='tight')
+        fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches="tight")
 
+        # Scatter plot
         fig, ax = plt.subplots(figsize=(12, 8))
 
         for i, noise in enumerate(noise_names):
-            conf_dict = outputs[noise]["confidence"]
-            scores = list(conf_dict.values())
+            scores = outputs[noise]["confidence_list"]
             num_samples = len(scores)
 
             if num_samples == 0:
                 continue
 
-            # Base x-position for this noise category column (e.g., index 0, 1, 2...)
             category_x = x_positions[i]
-
-            # Create an x-coordinate array matching the number of scores in this category
             jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
             jittered_x = category_x + jitter
 
@@ -143,19 +147,22 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
                 jittered_x,
                 scores,
                 alpha=0.7,
-                edgecolors='black',
+                edgecolors="black",
                 linewidths=1,
-                label=noise
+                label=noise,
             )
 
-        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
-        ax.set_ylabel("Confidence", fontweight='bold', fontsize=12)
-        ax.set_title("Individual Confidences Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
+        ax.set_title(
+            "Individual Confidences Across Noise Types", fontweight="bold", fontsize=14
+        )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
 
         plt.tight_layout()
-        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches='tight')
+        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
+
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
         output = ""
@@ -183,4 +190,6 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
     elif what_model == "graph":
         metrics_graph()
     else:
-        raise ValueError(f"{what_model.capitalize()} is not one of the options. Only pick one of these: train, transcribe, or graph.")
+        raise ValueError(
+            f"{what_model.capitalize()} is not one of the options. Only pick one of these: train, transcribe, or graph."
+        )

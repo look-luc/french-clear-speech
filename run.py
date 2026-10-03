@@ -26,9 +26,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run transcription model pipeline")
     parser.add_argument("--model_type", type=str, default="train")
     parser.add_argument("--noise_type", type=str, default="studio")
-    parser.add_argument("--cutoff_freq", type=parse_multiple_types, default=None)
     parser.add_argument("--snr_db", type=parse_multiple_types, default=None)
     args = parser.parse_args()
 
-    print(f"running {args.model_type}, with {args.noise_type}, {args.cutoff_freq}, and {args.snr_db}\n\n")
-    run_model(args.model_type, args.noise_type, args.cutoff_freq, args.snr_db)
+    print(f"running {args.model_type}, with {args.noise_type}, and {args.snr_db}\n\n")
+    run_model(args.model_type, args.noise_type, args.snr_db)
