@@ -20,6 +20,7 @@ from .transcription_model.model_experiment import (
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
+
 def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
@@ -89,10 +90,12 @@ def run_model(what_model: str, noise_type, snr_db):
                 }
 
                 for batch in simple_progress(dataloader, desc="testing noise"):
-                    transcriptions, batch_confidences = model.transcribe(
+                    _, batch_confidences = model.transcribe(
                         audio_array=batch["input_features"],
                         noise_type=n_type,
                         snr_db=snr_db,
+                        max_new_tokens=128,
+                        return_transcriptions=False,
                     )
 
                     outputs[n_type]["confidence_list"].extend(batch_confidences)

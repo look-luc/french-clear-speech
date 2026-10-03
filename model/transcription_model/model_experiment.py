@@ -34,6 +34,9 @@ class French_Clear_Speech_Model:
         self.dtype = torch.float16 if self.device == "cuda" else torch.float32
         self.path_to_model = path_to_model
 
+        if self.device == "cuda":
+            torch.set_float32_matmul_precision("high")
+
         self.processor, self.feature_extractor, self.model = self._setup(
             is_fine_tuned=is_fine_tuned
         )
@@ -49,6 +52,7 @@ class French_Clear_Speech_Model:
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id,
             torch_dtype=self.dtype,
+            attn_implementation="sdpa",
             low_cpu_mem_usage=True,
             use_safetensors=True,
             token=hf_token,
@@ -70,7 +74,7 @@ class French_Clear_Speech_Model:
         self, noise_type: str | None
     ) -> float | int | None:
         if noise_type is None:
-            return None, None
+            return None
 
         match noise_type.lower():
             case "base":
@@ -129,7 +133,7 @@ class French_Clear_Speech_Model:
     ) -> torch.Tensor:
         """Calculates and applies lowpass frequency masking and noise injection on log-mel tensors."""
         if noise_type is not None:
-            env_snr= self._get_noise_params(noise_type)
+            env_snr = self._get_noise_params(noise_type)
             snr_db = snr_db if snr_db is not None else env_snr
 
         degraded = input_features.clone()
@@ -149,6 +153,8 @@ class French_Clear_Speech_Model:
         snr_db: int | float | None = None,
         sampling_rate: int = 16000,
         temp: float = 0.0,
+        max_new_tokens: int = 128,
+        return_transcriptions: bool = False,
     ):
         input_features = torch.as_tensor(
             audio_array, device=self.device, dtype=self.dtype
@@ -163,21 +169,23 @@ class French_Clear_Speech_Model:
 
         output_ids = self.model.generate(
             input_features=degraded_features,
+            max_new_tokens=max_new_tokens,
             output_scores=True,
             return_dict_in_generate=True,
             do_sample=(temp > 0),
             temperature=temp,
         )
 
-        transcription_list = self.processor.batch_decode(
-            output_ids.sequences,
-            skip_special_tokens=True,
-        )
-
-        clean_transcriptions = [
-            re.sub(r"<\|.*?\|>|\[.*?\]", "", t).replace("fr", "").strip()
-            for t in transcription_list
-        ]
+        clean_transcriptions = []
+        if return_transcriptions:
+            transcription_list = self.processor.batch_decode(
+                output_ids.sequences,
+                skip_special_tokens=True,
+            )
+            clean_transcriptions = [
+                re.sub(r"<\|.*?\|>|\[.*?\]", "", t).replace("fr", "").strip()
+                for t in transcription_list
+            ]
 
         transition_scores = self.model.compute_transition_scores(
             output_ids.sequences,
