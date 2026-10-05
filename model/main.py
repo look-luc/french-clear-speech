@@ -72,8 +72,11 @@ def run_model(what_model: str, noise_type, snr_db):
             "crystal_void",
             "clear_horizon",
             "shortwave_relay",
+            "whisper_in_the_rain",
+            "broadcast",
+            "high_end_studio",
+            "studio",
             "quiet_home",
-            "extreme_cocktail",
         ]
 
         with torch.inference_mode():
