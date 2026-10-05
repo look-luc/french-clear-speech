@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=05:30:00
+#SBATCH --time=03:30:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
 #SBATCH --partition=aa100
