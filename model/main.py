@@ -78,13 +78,14 @@ def run_model(what_model: str, noise_type, snr_db):
             "studio",
             "quiet_home",
         ]
+        snr_targets = [0.0, -2.5, -5.0, -7.5, -10.0]
 
         with torch.inference_mode():
-            for n_type in noise_types:
+            for n_type in snr_targets:
                 print("\n")
-                print("|" + "=" * (len(n_type) + len("noise type: ")) + "|")
-                print(f"\n|noise type: {n_type}|\n")
-                print("|" + "=" * (len(n_type) + len("noise type: ")) + "|")
+                print("|" + "=" * (len(str(n_type)) + len("snr gap: ")) + "|")
+                print(f"\n|snr gap: {n_type}|\n")
+                print("|" + "=" * (len(str(n_type)) + len("snr gap: ")) + "|")
 
                 confidence_scores = []
                 outputs[n_type] = {
@@ -95,8 +96,8 @@ def run_model(what_model: str, noise_type, snr_db):
                 for batch in simple_progress(dataloader, desc="testing noise"):
                     _, batch_confidences = model.transcribe(
                         audio_array=batch["input_features"],
-                        noise_type=n_type,
-                        snr_db=snr_db,
+                        noise_type=None,
+                        snr_db=n_type,
                         max_new_tokens=128,
                         return_transcriptions=False,
                     )

@@ -149,7 +149,7 @@ class French_Clear_Speech_Model:
     def transcribe(
         self,
         audio_array: torch.Tensor | np.ndarray,
-        noise_type: str = "studio",
+        noise_type: str|None = "studio",
         snr_db: int | float | None = None,
         sampling_rate: int = 16000,
         temp: float = 0.0,
