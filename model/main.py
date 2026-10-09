@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -26,57 +27,57 @@ def run_model(what_model: str, noise_type, snr_db):
         outputs = {}
         model = experiment_model()
 
-        def collate_fn(batch):
-            input_list = [item["input_features"] for item in batch]
-            label_list = [item["labels"] for item in batch]
+        def collate_fn(batch, audio_only=False):
+            try:
+                input_list = [item["input_features"] for item in batch]
 
-            padded_inputs = model.processor.feature_extractor.pad(
-                [{"input_features": f} for f in input_list],
-                return_tensors="pt",
-            )
+                padded_inputs = model.processor.feature_extractor.pad(
+                    [{"input_features": f} for f in input_list],
+                    return_tensors="pt",
+                )
+                batch_dict = {
+                    "input_features": padded_inputs["input_features"]
+                }
 
-            padded_labels = model.processor.tokenizer.pad(
-                [{"input_ids": label} for label in label_list],
-                return_tensors="pt",
-            )
+                if not audio_only and "labels" in batch[0] and batch[0]["labels"] is not None:
+                    label_list = [item["labels"] for item in batch]
+                    padded_labels = model.processor.tokenizer.pad(
+                        [{"input_ids": label} for label in label_list],
+                        return_tensors="pt",
+                    )
 
-            labels_tensor = padded_labels["input_ids"].masked_fill(
-                padded_labels.attention_mask.ne(1), -100
-            )
+                    labels_tensor = padded_labels["input_ids"].masked_fill(
+                        padded_labels.attention_mask.ne(1), -100
+                    )
+                    if all(labels_tensor[:, 0] == model.processor.tokenizer.bos_token_id):
+                        labels_tensor = labels_tensor[:, 1:]
 
-            if all(labels_tensor[:, 0] == model.processor.tokenizer.bos_token_id):
-                labels_tensor = labels_tensor[:, 1:]
+                    # Fix: update batch_dict instead of batch
+                    batch_dict["labels"] = labels_tensor
 
-            return {
-                "input_features": padded_inputs["input_features"],
-                "labels": labels_tensor,
-            }
+                return batch_dict
+            except Exception:
+                return None
 
         train_dataset, test_dataset = get_data(
-            model.processor, model.feature_extractor
+            model.processor, model.feature_extractor, "lookitsluc1/tache_data"
         )
         combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format(
             "torch"
-        )
+        ) if test_dataset is not None else train_dataset
         dataloader = DataLoader(
             combined_data,
             batch_size=64,
-            collate_fn=collate_fn,
+            collate_fn=partial(collate_fn, audio_only=True),
             shuffle=False,
             num_workers=4,
             pin_memory=True,
         )
 
         noise_types = [
-            "base",
-            "crystal_void",
-            "clear_horizon",
             "shortwave_relay",
             "whisper_in_the_rain",
             "broadcast",
-            "high_end_studio",
-            "studio",
-            "quiet_home",
         ]
         snr_targets = [-2.5, -7.5]
 
@@ -108,6 +109,8 @@ def run_model(what_model: str, noise_type, snr_db):
                 outputs[n_type]["avg confidence"] = (
                     np.mean(confidence_scores) if confidence_scores else 0.0
                 )
+            for types in noise_types:
+
 
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
