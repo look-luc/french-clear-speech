@@ -78,7 +78,7 @@ def run_model(what_model: str, noise_type, snr_db):
             "studio",
             "quiet_home",
         ]
-        snr_targets = [0.0, -2.5, -5.0, -7.5, -10.0]
+        snr_targets = [-2.5, -7.5]
 
         with torch.inference_mode():
             for n_type in snr_targets:

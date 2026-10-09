@@ -9,7 +9,6 @@
 #SBATCH --time=02:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
 #SBATCH --job-name=french_clear_speech
-#SBATCH --partition=aa100
 #SBATCH --account=ucb-general
 #SBATCH --mail-type=END,FAIL
 
@@ -43,6 +42,5 @@ cd /projects/$USER/french-clear-speech
 
 MODEL_TYPE=${1:-train}
 NOISE_TYPE=${2:-studio}
-CUTOFF_FREQ=${3:-None}
 SNR_DB=${4:-None}
-python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --cutoff_freq "$CUTOFF_FREQ" --snr_db "$SNR_DB"
+python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --snr_db "$SNR_DB"
