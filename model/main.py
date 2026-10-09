@@ -110,7 +110,31 @@ def run_model(what_model: str, noise_type, snr_db):
                     np.mean(confidence_scores) if confidence_scores else 0.0
                 )
             for types in noise_types:
+                print("\n")
+                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
+                print(f"\n|noise type: {types}|\n")
+                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
 
+                confidence_scores = []
+                outputs[types] = {
+                    "confidence_list": [],
+                    "avg confidence": 0.0,
+                }
+
+                for batch in simple_progress(dataloader, desc="testing noise"):
+                    _, batch_confidences = model.transcribe(
+                        audio_array=batch["input_features"],
+                        noise_type=types,
+                        max_new_tokens=128,
+                        return_transcriptions=False,
+                    )
+
+                    outputs[types]["confidence_list"].extend(batch_confidences)
+                    confidence_scores.extend(batch_confidences)
+
+                outputs[types]["avg confidence"] = (
+                    np.mean(confidence_scores) if confidence_scores else 0.0
+                )
 
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
