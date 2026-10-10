@@ -37,6 +37,7 @@ module load anaconda
 
 conda activate french_clear_speech
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+pip uninstall -y torchcodec
 
 cd /projects/$USER/french-clear-speech
 
