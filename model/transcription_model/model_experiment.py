@@ -51,16 +51,16 @@ class French_Clear_Speech_Model:
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id,
-            torch_dtype=self.dtype,
+            dtype=self.dtype,
             attn_implementation="sdpa",
             low_cpu_mem_usage=True,
             use_safetensors=True,
             token=hf_token,
         ).to(self.device)
 
-        model.generation_config.language = None
-        model.generation_config.task = None
+        model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
         model.generation_config.use_timestamps = False
+        model.generation_config.no_timestamps_token_id = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
 
         if is_fine_tuned:
             peft_model = PeftModel.from_pretrained(model, self.path_to_model)
@@ -149,16 +149,27 @@ class French_Clear_Speech_Model:
     def transcribe(
         self,
         audio_array: torch.Tensor | np.ndarray,
-        noise_type: str|None = "studio",
+        noise_type: str | None = "studio",
         snr_db: int | float | None = None,
         sampling_rate: int = 16000,
         temp: float = 0.0,
         max_new_tokens: int = 128,
-        return_transcriptions: bool = False,
+        return_transcriptions: bool = True,
     ):
-        input_features = torch.as_tensor(
-            audio_array, device=self.device, dtype=self.dtype
+        # Convert torch tensor to numpy array if necessary for the processor
+        if isinstance(audio_array, torch.Tensor):
+            audio_array = audio_array.detach().cpu().numpy()
+
+        # Extract features and attention mask using the processor
+        inputs = self.processor(
+            audio_array,
+            sampling_rate=sampling_rate,
+            return_tensors="pt",
+            return_attention_mask=True,
         )
+
+        input_features = inputs.input_features.to(device=self.device, dtype=self.dtype)
+        attention_mask = inputs.attention_mask.to(device=self.device) if "attention_mask" in inputs else None
 
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
@@ -169,6 +180,7 @@ class French_Clear_Speech_Model:
 
         output_ids = self.model.generate(
             input_features=degraded_features,
+            attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
             output_scores=True,
             return_dict_in_generate=True,

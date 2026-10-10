@@ -22,18 +22,6 @@ if (consentGranted !== "true") {
     consent_timestamp: sessionStorage.getItem("consent_timestamp"),
   });
   var timeline = [];
-  function parseFormHTML(htmlString) {
-    var div = document.createElement("div");
-    div.innerHTML = htmlString;
-    var formData = {};
-    var inputs = div.querySelectorAll("input, select, textarea");
-    inputs.forEach((input) => {
-      if (input.name) {
-        formData[input.name] = input.value;
-      }
-    });
-    return formData;
-  }
 
   var welcome = {
     type: jsPsychSurvey,
@@ -94,6 +82,7 @@ if (consentGranted !== "true") {
       if (m < 0 || (m === 0 && today.getDate() < dobString.getDate())) {
         age--;
       }
+
       global_age = age;
       global_gender = genderVal;
 
@@ -266,13 +255,13 @@ if (consentGranted !== "true") {
       const prev_data = jsPsych.data.get().last(1).values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
-      return (
-        "<div>Je suis <b>" +
-        confidence_prct +
-        "%</b> sûr que vous avez dit: <b>" +
-        text +
-        "</b></div>"
-      );
+      if (confidence_prct > 75) {
+        return "<div>Ah <b>" + text + "</b></div>";
+      } else if (confidence_prct < 75 && 50 > confidence_prct) {
+        return "<div><b>" + text + "</b>?</div>";
+      } else {
+        return "<div>Je ne vous comprends pas.";
+      }
     },
     choices: ["Continue"],
   };

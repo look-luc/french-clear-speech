@@ -61,13 +61,13 @@ class transcription:
             if os.path.exists(out_path):
                 os.remove(out_path)
 
-    def execute(self, file, cutoff_freq=None, snr_db=None, temp=1.0):
+    def execute(self, file, noise_type=None, snr_db=None, temp=1.0):
         audio_tensor = self.decode_audio(file)
 
         self.transcription, self.confidence = self.model.transcribe(
             audio_array=audio_tensor,
             sampling_rate=16000,
-            cutoff_freq=cutoff_freq,
+            noise_type=noise_type,
             snr_db=snr_db,
             temp=temp,
         )

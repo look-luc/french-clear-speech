@@ -15,7 +15,8 @@ def handle_transcription(request):
         return JsonResponse({"ERROR": "NO AUDIO FILE ATTACHED"}, status=400)
 
     subject = request.POST.get("subject", "")
-    age = request.POST.get("age", "")
+    age_raw = request.POST.get("age", "")
+    age = int(age_raw) if age_raw.isdigit() else 0
     gender = request.POST.get("gender", "")
     trial_index = request.POST.get("trial_index", "")
     stimulus = request.POST.get("stimulus", "")
