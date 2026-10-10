@@ -31,7 +31,7 @@ def handle_transcription(request):
             gender=gender,
             trial_index=trial_index,
             stimulus=stimulus,
-            response=uploaded_file,
+            response=result,
             custom_tag=custom_tag
         )
 

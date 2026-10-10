@@ -10,6 +10,8 @@ if (consentGranted !== "true") {
   });
 
   var subject_id = jsPsych.randomization.randomID(10);
+  var global_age = null;
+  var global_gender = null;
 
   jsPsych.data.addProperties({
     subject: subject_id,
@@ -92,6 +94,8 @@ if (consentGranted !== "true") {
       if (m < 0 || (m === 0 && today.getDate() < dobString.getDate())) {
         age--;
       }
+      global_age = age;
+      global_gender = genderVal;
 
       jsPsych.data.addProperties({
         age: age,
@@ -165,6 +169,7 @@ if (consentGranted !== "true") {
     form_data.append("audio", audio_blob, "recording.webm");
     form_data.append("subject", metadata.subject);
     form_data.append("age", metadata.age);
+    form_data.append("gender", metadata.gender);
     form_data.append("trial_index", metadata.trial_index);
     form_data.append("stimulus", metadata.stimulus);
     form_data.append("custom_tag", metadata.custom_tag);
@@ -200,6 +205,8 @@ if (consentGranted !== "true") {
 
       metadata = {
         subject: subject_id,
+        age: global_age,
+        gender: global_gender,
         trial_index: data.trial_index,
         stimulus: data.stimulus,
         custom_tag: data.custom_tag,
