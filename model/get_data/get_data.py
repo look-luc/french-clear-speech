@@ -6,13 +6,13 @@ from typing import cast
 import numpy as np
 import scipy.signal
 import soundfile as sf
-from datasets import (
-    Audio,
-    load_dataset,
-)
+from datasets import load_dataset
 from dotenv import load_dotenv
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HfHubHTTPError
+
+# Force HF datasets to bypass torchcodec
+os.environ["HF_DATASETS_DISABLE_TORCHCODEC"] = "1"
 
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
@@ -41,29 +41,21 @@ def get_data(
     ds_train = load_dataset(repo_id, split="train", token=hf_token)
     ds_test = load_dataset(repo_id, split="test", token=hf_token)
 
-    ds_train = ds_train.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
-    ds_test = ds_test.map(lambda x: {"audio": str(repo_dir / x["file_name"])})
+    ds_train = ds_train.map(lambda x: {"audio_path": str(repo_dir / x["file_name"])})
+    ds_test = ds_test.map(lambda x: {"audio_path": str(repo_dir / x["file_name"])})
 
-    ds_train = ds_train.filter(lambda x: Path(x["audio"]).exists())
-    ds_test = ds_test.filter(lambda x: Path(x["audio"]).exists())
+    ds_train = ds_train.filter(lambda x: Path(x["audio_path"]).exists())
+    ds_test = ds_test.filter(lambda x: Path(x["audio_path"]).exists())
 
-    ds_train = ds_train.cast_column("audio", Audio(sampling_rate=16000, decode=False))
-    ds_test = ds_test.cast_column("audio", Audio(sampling_rate=16000, decode=False))
-
-    ds_train = ds_train.select_columns(["audio", "text"])
-    ds_test = ds_test.select_columns(["audio", "text"])
+    ds_train = ds_train.select_columns(["audio_path", "text"])
+    ds_test = ds_test.select_columns(["audio_path", "text"])
 
     def prepare_dataset(batch):
         paths = []
         audio_arrays = []
-        for item in batch["audio"]:
-            if isinstance(item, dict) and "array" in item and item["array"] is not None:
-                array = item["array"]
-                orig_sr = item.get("sampling_rate", 16000)
-            else:
-                audio_path = item["path"] if isinstance(item, dict) else item
-                paths.append(audio_path)
-                array, orig_sr = sf.read(audio_path)
+        for audio_path in batch["audio_path"]:
+            paths.append(audio_path)
+            array, orig_sr = sf.read(audio_path)
 
             if array.ndim > 1:
                 array = array.mean(axis=-1)

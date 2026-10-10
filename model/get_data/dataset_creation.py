@@ -1,102 +1,44 @@
+import csv
 from pathlib import Path
 
-import pandas as pd
 import soundfile as sf
-import torch
-import torchaudio.transforms as T
-from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset
-from transformers import AutoFeatureExtractor, WhisperProcessor
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 
-def to_huggingface(dataset_object, output_csv_path:str="metadata.csv"):
-    wav_names = [wav_path.name for wav_path, _ in dataset_object.data_pairs]
-    transcripts = [txt_path.read_text(encoding="utf-8").strip() for _, txt_path in dataset_object.data_pairs]
+def create_metadata_csv(audio_dir: str | Path, output_csv_path: str | Path = None):
+    audio_dir = Path(audio_dir).resolve()
+    if output_csv_path is None:
+        output_csv_path = audio_dir / "metadata.csv"
+    else:
+        output_csv_path = Path(output_csv_path).resolve()
 
-    df = pd.DataFrame({
-        "file_name": wav_names,
-        "text": transcripts
-    })
-    df.to_csv(output_csv_path, index=False)
+    valid_extensions = {".wav", ".flac", ".mp3", ".ogg"}
+    rows = []
 
-def get_train_test_datasets(
-    processor,
-    feature_extractor,
-    audio_dir=f"{BASE_DIR}/praat/data",
-    txt_dir=f"{BASE_DIR}/praat/data",
-    test_size=0.2
-):
-    audio_path, txt_path = Path(audio_dir), Path(txt_dir)
-    all_pairs = []
-    for wav_file in sorted(audio_path.glob("*.wav")):
-        txt_file = txt_path / f"{wav_file.stem}.txt"
-        if txt_file.exists():
-            all_pairs.append((wav_file, txt_file))
+    for file_path in sorted(audio_dir.rglob("*")):
+        if file_path.suffix.lower() in valid_extensions and file_path.is_file():
+            # Hugging Face expects relative paths from the metadata.csv location
+            relative_path = file_path.relative_to(audio_dir).as_posix()
 
-    if not all_pairs:
-        raise FileNotFoundError(
-            f"No matching .wav and .txt file pairs were found in '{audio_path}'. "
-            f"Verify that audio and transcript files exist in the target directory."
-        )
+            try:
+                info = sf.info(file_path)
+                duration = round(info.duration, 2)
+            except Exception:
+                duration = None
 
-    train_pairs, test_pairs = train_test_split(all_pairs, test_size=test_size, random_state=42)
+            rows.append({
+                "file_name": relative_path,
+                "duration": duration,
+                "text": ""  # Optional placeholder if text transcripts are added later
+            })
 
-    train_dataset = Data(processor, feature_extractor, train_pairs)
-    test_dataset = Data(processor, feature_extractor, test_pairs)
+    fieldnames = ["file_name", "duration", "text"]
+    with open(output_csv_path, mode="w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
-    return train_dataset, test_dataset
-
-class Data(Dataset):
-    def __init__(self, processor, feature_extractor, data_pairs):
-        self.processor = processor
-        self.feature_extractor = feature_extractor
-        self.data_pairs = data_pairs
-
-    def __len__(self) -> int:
-        return len(self.data_pairs)
-
-    def __getitem__(self, idx: int) -> dict:
-        wav_path, txt_path = self.data_pairs[idx]
-
-        file, sample_rate = sf.read(str(wav_path))
-        waveform = torch.from_numpy(file).float()
-
-        if waveform.ndim == 1:
-            waveform = waveform.unsqueeze(0)
-        else:
-            waveform = waveform.T
-
-        if sample_rate != 16000:
-            resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
-            waveform = resampler(waveform)
-
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
-        waveform_1d = waveform.squeeze(0)
-
-        outputs = self.feature_extractor(waveform_1d, sampling_rate=16000, return_tensors="pt")
-        extracted_features = outputs.input_features[0]
-
-        transcript = txt_path.read_text(encoding="utf-8").strip()
-        label_ids = self.processor.tokenizer(transcript).input_ids
-
-        return {"input_features": extracted_features, "labels": label_ids}
+    print(f"Successfully generated {output_csv_path} with {len(rows)} entries.")
 
 if __name__ == "__main__":
-    model_id = "bofenghuang/whisper-medium-french"
-    processor = WhisperProcessor.from_pretrained(model_id)
-    feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
-
-    praat_data_dir = BASE_DIR / "praat" / "data"
-    train_dataset, test_dataset = get_train_test_datasets(
-        processor,
-        feature_extractor,
-        audio_dir=praat_data_dir,
-        txt_dir=praat_data_dir
-    )
-
-    to_huggingface(train_dataset, f"{BASE_DIR}/praat/train_metadata.csv")
-    print("finished train dataset csv")
-    to_huggingface(test_dataset, f"{BASE_DIR}/praat/test_metadata.csv")
-    print("finished test dataset csv")
+    # Replace with the local path to your audio dataset folder
+    create_metadata_csv("/Users/lucdenardi/Desktop/data/lecture")
