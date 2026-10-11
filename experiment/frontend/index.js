@@ -255,9 +255,9 @@ if (consentGranted !== "true") {
       const prev_data = jsPsych.data.get().last(1).values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
-      if (confidence_prct > 75) {
+      if (confidence_prct >= 75) {
         return "<div>Ah <b>" + text + "</b></div>";
-      } else if (confidence_prct < 75 && 50 > confidence_prct) {
+      } else if (confidence_prct < 75 && 50 <= confidence_prct) {
         return "<div><b>" + text + "</b>?</div>";
       } else {
         return "<div>Je ne vous comprends pas.";
