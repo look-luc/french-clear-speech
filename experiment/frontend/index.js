@@ -179,6 +179,18 @@ if (consentGranted !== "true") {
   var audio_blob = null;
   var metadata = null;
 
+  var before_start = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <div>
+        After this page, you will start the trial portion. The first transcription will take a bit longer than the rest, this is normal, we are loading the model.
+      </div>
+      <div>
+        Apres cette page, vous commencerez le portion d'essai. Le premier transcrit va prend un peut de temps que le reste, c'est normal, nous sommes en train de charger le modèl.
+      </div>
+      `,
+  };
+
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
@@ -267,7 +279,7 @@ if (consentGranted !== "true") {
   };
 
   const test_procedure = {
-    timeline: [test_run, processing_audio, jspsych_display_trial],
+    timeline: [before_start, test_run, processing_audio, jspsych_display_trial],
     timeline_variables: STIMULI,
     randomize_order: true,
   };
