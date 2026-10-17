@@ -9,6 +9,7 @@ CREATE TABLE public.data_response
     trial_index character varying(30),
     stimulus character varying(128) NOT NULL,
     response text NOT NULL,
+    confidence smallint NOT NULL,
     custom_tag character varying(100) DEFAULT 'clear_speech',
     CONSTRAINT pk_data_response PRIMARY KEY (primary_key)
 );

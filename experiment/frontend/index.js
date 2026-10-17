@@ -267,10 +267,8 @@ if (consentGranted !== "true") {
       const prev_data = jsPsych.data.get().last(1).values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
-      if (confidence_prct >= 75) {
+      if (confidence_prct > 33) {
         return "<div>Ah <b>" + text + "</b></div>";
-      } else if (confidence_prct < 75 && 50 <= confidence_prct) {
-        return "<div><b>" + text + "</b>?</div>";
       } else {
         return "<div>Je ne vous comprends pas.";
       }
@@ -278,13 +276,24 @@ if (consentGranted !== "true") {
     choices: ["Continue"],
   };
 
+  timeline.push(before_start);
   const test_procedure = {
-    timeline: [before_start, test_run, processing_audio, jspsych_display_trial],
-    timeline_variables: STIMULI,
+    timeline: [test_run, processing_audio, jspsych_display_trial],
+    timeline_variables: STIMULI.stimulus,
     randomize_order: true,
   };
 
   timeline.push(test_procedure);
+
+  const thank_you_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <h1>Merci!</h1>
+      <p>Vous avez fini cette l'expérience. Vous pouvez fermer cet onglet.</p>
+    `,
+    choices: "NO_KEYS",
+  };
+  timeline.push(thank_you_trial);
 
   jsPsych.run(timeline);
 }
