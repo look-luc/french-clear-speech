@@ -41,6 +41,8 @@ class French_Clear_Speech_Model:
             is_fine_tuned=is_fine_tuned
         )
 
+        self.model = torch.compile(self.model, mode="reduce-overhead", fullgraph=False)
+
     def _setup(self, is_fine_tuned: bool = False):
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe", token=hf_token
