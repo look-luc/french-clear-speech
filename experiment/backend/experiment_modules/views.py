@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import audio_experiment_record
+from .models import Audio, DataResponseAudio, audio_experiment_record
 from .utils import transcription
 
 
@@ -11,6 +11,7 @@ def handle_transcription(request):
         return JsonResponse({"ERROR": "METHOD NOT ALLOWED"}, status=405)
 
     uploaded_file = request.FILES.get("audio")
+    snr_type = request.FILES.get("situation")
     if uploaded_file is None:
         return JsonResponse({"ERROR": "NO AUDIO FILE ATTACHED"}, status=400)
 
@@ -20,20 +21,33 @@ def handle_transcription(request):
     gender = request.POST.get("gender", "")
     trial_index = request.POST.get("trial_index", "")
     stimulus = request.POST.get("stimulus", "")
+    # confidence_score = request.POST.get("confidence_score", "")
     custom_tag = request.POST.get("custom_tag", "clear_speech")
 
     try:
         service = transcription()
-        result, confidence_score = service.execute(uploaded_file)
+        result, confidence_score = service.execute(
+            file=uploaded_file,
+            noise_type=snr_type
+        )
+
+        audio_instance = Audio.objects.create(
+            audio_str=uploaded_file.name
+        )
 
         record = audio_experiment_record.objects.create(
-            subject=subject,
-            age=age,
-            gender=gender,
-            trial_index=trial_index,
-            stimulus=stimulus,
-            response=result,
-            custom_tag=custom_tag
+            subject = subject,
+            age = age,
+            gender = gender,
+            trial_index = trial_index,
+            response = stimulus,
+            confidence = confidence_score,
+            custom_tag = custom_tag
+        )
+
+        DataResponseAudio.objects.create(
+            data_response = record,
+            audio = audio_instance
         )
 
         return JsonResponse(

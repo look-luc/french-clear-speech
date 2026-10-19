@@ -61,7 +61,13 @@ class transcription:
             if os.path.exists(out_path):
                 os.remove(out_path)
 
-    def execute(self, file, noise_type=None, snr_db=None, temp=1.0):
+    def execute(
+        self,
+        file,
+        noise_type:str|None=None,
+        snr_db:int|float|None=None,
+        temp=1.0
+    ):
         audio_tensor = self.decode_audio(file)
 
         self.transcription, self.confidence = self.model.transcribe(

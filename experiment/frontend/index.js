@@ -209,7 +209,7 @@ if (consentGranted !== "true") {
         age: global_age,
         gender: global_gender,
         trial_index: data.trial_index,
-        stimulus: data.stimulus,
+        stimulus: current_stimulus_text,
         custom_tag: data.custom_tag,
       };
     },
