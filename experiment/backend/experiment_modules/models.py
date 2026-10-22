@@ -6,7 +6,7 @@ class  Audio(models.Model):
     audio_str = models.CharField(max_length=128)
 
     class Meta:
-        db_table = "audio"
+        db_table = "Audio"
 
 class audio_experiment_record(models.Model):
     primary_key = models.AutoField(primary_key=True, db_column="primary_key")
@@ -18,7 +18,7 @@ class audio_experiment_record(models.Model):
     confidence = models.SmallIntegerField
     custom_tag = models.CharField(max_length=100, default="clear_speech")
 
-    audio_files = models.ManyToManyField(audio, through="DataResponseAudio")
+    audio_files = models.ManyToManyField(Audio, through="DataResponseAudio")
 
     class Meta:
         db_table = "data_response"

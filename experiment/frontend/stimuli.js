@@ -1,4 +1,4 @@
-const STIMULI = [
+export const STIMULI = [
   {
     situation: "base",
     stimulus: "C'est Bon",
