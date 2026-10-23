@@ -158,11 +158,15 @@ class French_Clear_Speech_Model:
         max_new_tokens: int = 128,
         return_transcriptions: bool = True,
     ):
-        # Convert torch tensor to numpy array if necessary for the processor
         if isinstance(audio_array, torch.Tensor):
             audio_array = audio_array.detach().cpu().numpy()
 
-        # Extract features and attention mask using the processor
+        if isinstance(audio_array, np.ndarray) and audio_array.ndim > 1:
+            if audio_array.shape[0] < audio_array.shape[1]:
+                audio_array = np.mean(audio_array, axis=0)
+            else:
+                audio_array = np.mean(audio_array, axis=1)
+
         inputs = self.processor(
             audio_array,
             sampling_rate=sampling_rate,

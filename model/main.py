@@ -2,6 +2,7 @@ import os
 from functools import partial
 from pathlib import Path
 
+import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -21,58 +22,18 @@ from .transcription_model.model_experiment import (
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
+script_dir = Path(__file__).resolve().parent
 
 def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
         model = experiment_model()
 
-        def collate_fn(batch, audio_only=False):
-            try:
-                input_list = [item["input_features"] for item in batch]
-
-                padded_inputs = model.processor.feature_extractor.pad(
-                    [{"input_features": f} for f in input_list],
-                    return_tensors="pt",
-                )
-                batch_dict = {
-                    "input_features": padded_inputs["input_features"]
-                }
-
-                if not audio_only and "labels" in batch[0] and batch[0]["labels"] is not None:
-                    label_list = [item["labels"] for item in batch]
-                    padded_labels = model.processor.tokenizer.pad(
-                        [{"input_ids": label} for label in label_list],
-                        return_tensors="pt",
-                    )
-
-                    labels_tensor = padded_labels["input_ids"].masked_fill(
-                        padded_labels.attention_mask.ne(1), -100
-                    )
-                    if all(labels_tensor[:, 0] == model.processor.tokenizer.bos_token_id):
-                        labels_tensor = labels_tensor[:, 1:]
-
-                    # Fix: update batch_dict instead of batch
-                    batch_dict["labels"] = labels_tensor
-
-                return batch_dict
-            except Exception:
-                return None
-
-        train_dataset, test_dataset = get_data(
-            model.processor, model.feature_extractor, "lookitsluc1/tache_data"
-        )
-        combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format(
-            "torch"
-        ) if test_dataset is not None else train_dataset
-        dataloader = DataLoader(
-            combined_data,
-            batch_size=64,
-            collate_fn=partial(collate_fn, audio_only=True),
-            shuffle=False,
-            num_workers=4,
-            pin_memory=True,
-        )
+        # Define your specific audio files directly
+        audio_files = [
+            script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache01_11025_1.wav",
+            script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache02_11025_128.wav",
+        ]
 
         noise_types = [
             "base",
@@ -113,21 +74,27 @@ def run_model(what_model: str, noise_type, snr_db):
                     "avg confidence": 0.0,
                 }
 
-                for batch in simple_progress(dataloader, desc="testing noise"):
+                for audio in audio_files:
+                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
+                    if sr != 16000:
+                        audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
+                        sr = 16000
+
                     _, batch_confidences = model.transcribe(
-                        audio_array=batch["input_features"],
+                        audio_array=audio_array,
                         noise_type=None,
                         snr_db=n_type,
+                        sampling_rate=sr,
                         max_new_tokens=128,
                         return_transcriptions=False,
                     )
-
                     outputs[n_type]["confidence_list"].extend(batch_confidences)
                     confidence_scores.extend(batch_confidences)
 
                 outputs[n_type]["avg confidence"] = (
                     np.mean(confidence_scores) if confidence_scores else 0.0
                 )
+
             for types in noise_types:
                 print("\n")
                 print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
@@ -140,14 +107,50 @@ def run_model(what_model: str, noise_type, snr_db):
                     "avg confidence": 0.0,
                 }
 
-                for batch in simple_progress(dataloader, desc="testing noise"):
+                for audio in audio_files:
+                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
+
+                    # Resample to 16000 Hz here as well
+                    if sr != 16000:
+                        audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
+                        sr = 16000
+
                     _, batch_confidences = model.transcribe(
-                        audio_array=batch["input_features"],
+                        audio_array=audio_array,
                         noise_type=types,
+                        sampling_rate=sr,
                         max_new_tokens=128,
                         return_transcriptions=False,
                     )
+                    outputs[types]["confidence_list"].extend(batch_confidences)
+                    confidence_scores.extend(batch_confidences)
 
+                outputs[types]["avg confidence"] = (
+                    np.mean(confidence_scores) if confidence_scores else 0.0
+                )
+
+            # 2. Evaluate noise types on the specific audio files
+            for types in noise_types:
+                print("\n")
+                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
+                print(f"\n|noise type: {types}|\n")
+                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
+
+                confidence_scores = []
+                outputs[types] = {
+                    "confidence_list": [],
+                    "avg confidence": 0.0,
+                }
+
+                for audio in audio_files:
+                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
+                    _, batch_confidences = model.transcribe(
+                        audio_array=audio_array,
+                        noise_type=types,
+                        sampling_rate=sr,
+                        max_new_tokens=128,
+                        return_transcriptions=False,
+                    )
                     outputs[types]["confidence_list"].extend(batch_confidences)
                     confidence_scores.extend(batch_confidences)
 
@@ -158,7 +161,7 @@ def run_model(what_model: str, noise_type, snr_db):
         noise_names = list(outputs.keys())
         avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
 
-        # Bar chart
+        # Bar chart generation
         fig, ax = plt.subplots(figsize=(12, 8))
         x_positions = np.arange(len(noise_names))
         bar_width = 0.5
@@ -174,7 +177,7 @@ def run_model(what_model: str, noise_type, snr_db):
         ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
         ax.set_ylabel("Average Confidence", fontweight="bold", fontsize=12)
         ax.set_title(
-            "Model Confidence Across Noise Types", fontweight="bold", fontsize=14
+            "Model Confidence Across Noise Types (Custom Audio)", fontweight="bold", fontsize=14
         )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
@@ -182,7 +185,7 @@ def run_model(what_model: str, noise_type, snr_db):
         plt.tight_layout()
         fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches="tight")
 
-        # Scatter plot
+        # Scatter plot generation
         fig, ax = plt.subplots(figsize=(12, 8))
 
         for i, noise in enumerate(noise_names):
@@ -208,7 +211,7 @@ def run_model(what_model: str, noise_type, snr_db):
         ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
         ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
         ax.set_title(
-            "Individual Confidences Across Noise Types", fontweight="bold", fontsize=14
+            "Individual Confidences Across Noise Types (Custom Audio)", fontweight="bold", fontsize=14
         )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
