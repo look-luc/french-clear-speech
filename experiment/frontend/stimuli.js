@@ -1,4 +1,4 @@
-export const STIMULI = [
+const STIMULI = [
   {
     situation: "base",
     stimulus: "C'est Bon",
@@ -8,3 +8,5 @@ export const STIMULI = [
   //   stimulus: "",
   // },
 ];
+
+export default STIMULI;

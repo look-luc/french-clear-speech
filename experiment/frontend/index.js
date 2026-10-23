@@ -1,4 +1,4 @@
-import { STIMULI } from "./stimuli.js";
+import STIMULI from "./stimuli.js";
 
 const consentGranted = sessionStorage.getItem("consent_granted");
 if (consentGranted !== "true") {
@@ -205,7 +205,7 @@ if (consentGranted !== "true") {
         age: global_age,
         gender: global_gender,
         trial_index: data.trial_index,
-        stimulus: current_stimulus_text,
+        stimulus: jsPsych.evaluateTimelineVariable("stimulus"),
         custom_tag: data.custom_tag,
       };
     },
@@ -275,10 +275,7 @@ if (consentGranted !== "true") {
   timeline.push(before_start);
   const test_procedure = {
     timeline: [test_run, processing_audio, jspsych_display_trial],
-    timeline_variables: STIMULI.forEach((item) => {
-      item.stimulus;
-      item.situation;
-    }),
+    timeline_variables: STIMULI,
     randomize_order: true,
   };
 

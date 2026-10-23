@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Audio, DataResponseAudio, audio_experiment_record
+from .models import Audio, DataResponse, DataResponseAudio
 from .utils import transcription
 
 
@@ -21,7 +21,6 @@ def handle_transcription(request):
     gender = request.POST.get("gender", "")
     trial_index = request.POST.get("trial_index", "")
     stimulus = request.POST.get("stimulus", "")
-    # confidence_score = request.POST.get("confidence_score", "")
     custom_tag = request.POST.get("custom_tag", "clear_speech")
 
     try:
@@ -35,7 +34,7 @@ def handle_transcription(request):
             audio_str=uploaded_file.name
         )
 
-        record = audio_experiment_record.objects.create(
+        record = DataResponse.objects.create(
             subject = subject,
             age = age,
             gender = gender,

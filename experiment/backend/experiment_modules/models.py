@@ -1,21 +1,21 @@
 from django.db import models
 
 
-class  Audio(models.Model):
+class Audio(models.Model):
     primary_key = models.AutoField(primary_key=True, db_column="primary_key")
     audio_str = models.CharField(max_length=128)
 
     class Meta:
         db_table = "Audio"
 
-class audio_experiment_record(models.Model):
+class DataResponse(models.Model):
     primary_key = models.AutoField(primary_key=True, db_column="primary_key")
     subject = models.CharField(max_length=100)
     age = models.SmallIntegerField()
     gender = models.CharField(max_length=32)
     trial_index = models.CharField(max_length=30, null=True, blank=True)
     response = models.TextField()
-    confidence = models.SmallIntegerField
+    confidence = models.SmallIntegerField()  # Fixed: added parentheses
     custom_tag = models.CharField(max_length=100, default="clear_speech")
 
     audio_files = models.ManyToManyField(Audio, through="DataResponseAudio")
@@ -25,7 +25,7 @@ class audio_experiment_record(models.Model):
 
 class DataResponseAudio(models.Model):
     data_response = models.ForeignKey(
-        audio_experiment_record,
+        DataResponse,
         on_delete=models.CASCADE
     )
     audio = models.ForeignKey(
