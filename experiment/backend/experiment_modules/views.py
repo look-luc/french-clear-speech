@@ -30,6 +30,12 @@ def handle_transcription(request):
             noise_type=snr_type
         )
 
+        # Handle case where confidence_score is returned as a list, array, or tensor
+        if hasattr(confidence_score, "__len__") and not isinstance(confidence_score, (str, bytes)):
+            confidence_val = float(confidence_score[0])
+        else:
+            confidence_val = float(confidence_score)
+
         audio_instance = Audio.objects.create(
             audio_str=uploaded_file.name
         )
@@ -40,7 +46,7 @@ def handle_transcription(request):
             gender = gender,
             trial_index = trial_index,
             response = stimulus,
-            confidence = confidence_score,
+            confidence = confidence_val, # Use the unwrapped float value
             custom_tag = custom_tag
         )
 
@@ -54,7 +60,7 @@ def handle_transcription(request):
                 "STATUS": "SUCCESS",
                 "PRIMARY_KEY": record.primary_key,
                 "TRANSCRIPTION": result,
-                "CONFIDENCE": confidence_score
+                "CONFIDENCE": confidence_val
             },
             status=200
         )

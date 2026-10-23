@@ -6,7 +6,7 @@ class Audio(models.Model):
     audio_str = models.CharField(max_length=128)
 
     class Meta:
-        db_table = "Audio"
+        db_table = "audio"
 
 class DataResponse(models.Model):
     primary_key = models.AutoField(primary_key=True, db_column="primary_key")
@@ -15,7 +15,7 @@ class DataResponse(models.Model):
     gender = models.CharField(max_length=32)
     trial_index = models.CharField(max_length=30, null=True, blank=True)
     response = models.TextField()
-    confidence = models.SmallIntegerField()  # Fixed: added parentheses
+    models.FloatField()
     custom_tag = models.CharField(max_length=100, default="clear_speech")
 
     audio_files = models.ManyToManyField(Audio, through="DataResponseAudio")
