@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -30,11 +32,12 @@ def handle_transcription(request):
             noise_type=snr_type
         )
 
-        # Handle case where confidence_score is returned as a list, array, or tensor
-        if hasattr(confidence_score, "__len__") and not isinstance(confidence_score, (str, bytes)):
-            confidence_val = float(confidence_score[0])
-        else:
-            confidence_val = float(confidence_score)
+        score_val: Any = confidence_score
+        if hasattr(score_val, "__len__") and not isinstance(score_val, (str, bytes)):
+            while hasattr(score_val, "__len__") and not isinstance(score_val, (str, bytes)):
+                score_val = score_val[0]
+
+        confidence_val = float(score_val)
 
         audio_instance = Audio.objects.create(
             audio_str=uploaded_file.name
@@ -46,7 +49,7 @@ def handle_transcription(request):
             gender = gender,
             trial_index = trial_index,
             response = stimulus,
-            confidence = confidence_val, # Use the unwrapped float value
+            confidence = confidence_val,
             custom_tag = custom_tag
         )
 
