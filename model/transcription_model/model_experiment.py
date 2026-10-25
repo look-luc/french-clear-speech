@@ -3,7 +3,8 @@ import re
 from pathlib import Path
 
 import evaluate
-import librosa
+
+# import librosa
 import numpy as np
 import torch
 from dotenv import load_dotenv
@@ -168,13 +169,13 @@ class French_Clear_Speech_Model:
             else:
                 audio_array = np.mean(audio_array, axis=1)
 
-        if sampling_rate != 16000:
-            audio_array = librosa.resample(
-                audio_array.astype(np.float32),
-                orig_sr=sampling_rate,
-                target_sr=16000
-            )
-            sampling_rate = 16000
+        # if sampling_rate != 16000:
+        #     audio_array = librosa.resample(
+        #         audio_array.astype(np.float32),
+        #         orig_sr=sampling_rate,
+        #         target_sr=16000
+        #     )
+        #     sampling_rate = 16000
 
         inputs = self.processor(
             audio_array,

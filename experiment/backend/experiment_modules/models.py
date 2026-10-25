@@ -15,7 +15,7 @@ class DataResponse(models.Model):
     gender = models.CharField(max_length=32)
     trial_index = models.CharField(max_length=30, null=True, blank=True)
     response = models.TextField()
-    models.FloatField()
+    confidence = models.FloatField()
     custom_tag = models.CharField(max_length=100, default="clear_speech")
 
     audio_files = models.ManyToManyField(Audio, through="DataResponseAudio")
