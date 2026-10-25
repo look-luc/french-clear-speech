@@ -24,6 +24,7 @@ class DataResponse(models.Model):
         db_table = "data_response"
 
 class DataResponseAudio(models.Model):
+    id = models.AutoField(primary_key=True, db_column="id")
     data_response = models.ForeignKey(
         DataResponse,
         on_delete=models.CASCADE

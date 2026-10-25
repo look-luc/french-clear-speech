@@ -53,10 +53,7 @@ def handle_transcription(request):
             custom_tag = custom_tag
         )
 
-        DataResponseAudio.objects.create(
-            data_response = record,
-            audio = audio_instance
-        )
+        record.audio_files.add(audio_instance)
 
         return JsonResponse(
             {
