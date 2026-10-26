@@ -3,116 +3,342 @@ const STIMULI = [
     situation: "base",
     stimulus: "C'est Bon",
   },
-  // {
-  //   situation: "whier_in_the_rain",
-  //   stimulus: "",
-  // },
-  // {
-  //    stimulus: "c'est le sud a cote du rond  bleu",
-  //    stimulus: ""
-  // }
-  // "c'est le trophee sur le triangle vert "
-  // "c'est le trophee sur le triangle vert  "
-  // "c'est le whiskey en dessous du rond gris "
-  // "c'est le parrain au dessus du triangle rouge  "
-  // "c'est le talon en dessous du triangle vert  "
-  // "c'est le theme en dessous du carre rouge  "
-  // "c'est l' allure  sur l' etoile  grise "
-  // "c'est le marquis a cote de l' etoile verte  "
-  // "c'est douteux  au dessus du rond  vert "
-  // "c'est relax  a cote du triangle  rouge  "
-  // "c'est le debit sur le rond bleu "
-  // "c'est l' allure sur l' etoile grise "
-  // "c'est la clarte en dessous du cercle vert "
-  // "c'est le recours a cote du carre vert  "
-  // "c'est l' assaut  sur l' etoile verte   "
-  // "c'est la brebis a cote du rond bleu "
-  // "c'est epars  sur  le rond vert  "
-  // "c'est le godet  a cote du triangle gris "
-  // "c'est le micro a cote du rond gris "
-  // "c'est la bougie  au dessus  du triangle gris  "
-  // "c'est la  capsule  au dessus  du carre  rouge   "
-  // "c'est l' allure  sur l' etoile grise  "
-  // "c'est la paleur sur le triangle jaune   "
-  // "c'est la fureur au dessus de l' etoile bleue   "
-  // "c'est le divan  en dessous  du rond rouge  "
-  // "c'est le coma en dessous du triangle vert "
-  // "c'est l' etape au dessus du carre gris  "
-  // "c'est amer au dessus de l' etoile jaune "
-  // "c'est le cadet  sur le carre  rouge  "
-  // "c'est l' assaut  sur l' etoile verte  "
-  // "c'est le savon  en dessous de l' etoile jaune  "
-  // "c'est le bouton a cote de l' etoile bleue   "
-  // "c'est le ruisseau  a cote du triangle rouge  "
-  // "c'est le bouquin sur le triangle gris  "
-  // "c'est le format  en dessous du rond gris   "
-  // "c'est l' ouvrage en dessous du carre gris   "
-  // "c'est l' aveu en dessous du rond rouge  "
-  // "c'est marron  en dessous du triangle vert  "
-  // "c'est absurde  au dessus du rond rouge  "
-  // "c'est la puree en dessous de l' etoile bleue  "
-  // "c'est l' antenne  sur l' etoile grise "
-  // "c'est le karma sur l' etoile grise  "
-  // "c'est la flanelle au dessus du rond bleu  "
-  // "c'est  le sceau  sur le rond  gris "
-  // "c'est le recours a cote du carre vert  "
-  // "c'est la pancarte au dessus du triangle gris "
-  // "c'est le cil a cote de l' etoile rouge  "
-  // "c'est la fureur au dessus de l' etoile bleue   "
-  // "c'est la guitare  a cote du carre  bleu   "
-  // "c'est le genou sur le rond gris  "
-  // "c'est la moto  en dessous de l' etoile bleue  "
-  // "c'est le menteur a cote du rond vert "
-  // "c'est le gala en dessous du rond rouge  "
-  // "c'est le cingle a cote du carre bleu  "
-  // "c'est la brebis  a cote du rond bleu  "
-  // "c'est le theme en dessous du carre rouge "
-  // "c'est la graine en dessous du  rond jaune  "
-  // "c'est le pate  en dessous du triangle bleu  "
-  // "c'est le precis  sur le carre bleu   "
-  // "c'est l' intrus au dessus du rond jaune  "
-  // "c'est le secteur en dessous  du rond  gris "
-  // "c'est le sceau  sur le rond gris "
-  // "c'est le donjon  a cote du triangle jaune  "
-  // "c'est l' egard en dessous du triangle rouge  "
-  // "c'est le poussin en dessous du triangle jaune   "
-  // "c'est le whiskey  en dessous du rond gris  "
-  // "c'est le metteur sur le carre jaune "
-  // "c'est l' arnaque  en dessous de l' etoile rouge   "
-  // "c'est la charrue sur le triangle jaune  "
-  // "c'est  la brebis  a cote du rond  bleu  "
-  // "c'est le cigare au dessus du rond jaune  "
-  // "c'est la soucoupe  sur l' etoile  jaune  "
-  // "c'est le degre  a cote de l' etoile  jaune "
-  // "c'est l' atout sur l' etoile jaune "
-  // "c'est le cil a cote de l' etoile rouge  "
-  // "c'est le cypres sur le rond jaune  "
-  // "c'est  le blaheme sur le triangle bleu  "
-  // "c'est la monnaie a cote du rond vert "
-  // "c'est les patins en dessous du carre vert  "
-  // "c'est le metteur  sur  le carre  jaune  "
-  // "c'est  la fierte  au dessus de l' etoile  verte   "
-  // "c'est le recu  sur le triangle rouge   "
-  // "c'est le voisin  sur le rond bleu   "
-  // "c'est la rigueur a cote du carre gris "
-  // "c'est le gouter  en dessous du carre bleu  "
-  // "c'est le format en dessous du rond gris "
-  // "c'est le blafard au dessus du carre bleu "
-  // "c'est morveux en dessous de l' etoile grise "
-  // "c'est le cigare au dessus du rond jaune  "
-  // "c'est marron  en dessous du triangle vert "
-  // "c'est le satin sur l' etoile rouge "
-  // "c'est le fardeau  sur l' etoile bleue "
-  // "c'est le talus a cote du rond jaune "
-  // "c'est le bouchon  sur le triangle  jaune "
-  // "c'est l' osseux sur le carre gris "
-  // "c'est la graine en dessous du rond jaune  "
-  // "c'est la villa au dessus de l' etoile jaune "
-  // "c'est le  coma  en dessous du triangle vert "
-  // "c'est  l' ouvrage  en dessous du carre  gris "
-  // "c'est cinquante sur le rond vert  "
-  // "c'est l' etude sur l' etoile rouge "
-  // "c'est la bonte  sur le rond  vert "
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le sud à côté du rond bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le trophée sur le triangle vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le whiskey en dessous du rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le parrain au-dessus du triangle rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le talon en dessous du triangle vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le thème en dessous du carré rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'allure sur l'étoile grise",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le marquis à côté de l'étoile verte",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est douteux au-dessus du rond vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est relax à côté du triangle rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le débit sur le rond bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la clarté en dessous du cercle vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le recours à côté du carré vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'assaut sur l'étoile verte",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la brebis à côté du rond bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est épars sur le rond vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le godet à côté du triangle gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le micro à côté du rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la bougie au-dessus du triangle gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la capsule au-dessus du carré rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la pâleur sur le triangle jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la fureur au-dessus de l'étoile bleue",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le divan en dessous du rond rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le coma en dessous du triangle vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'étape au-dessus du carré gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est amer au-dessus de l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le cadet sur le carré rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le savon en dessous de l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le bouton à côté de l'étoile bleue",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le ruisseau à côté du triangle rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le bouquin sur le triangle gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le format en dessous du rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'ouvrage en dessous du carré gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'aveu en dessous du rond rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est marron en dessous du triangle vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est absurde au-dessus du rond rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la purée en dessous de l'étoile bleue",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'antenne sur l'étoile grise",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le karma sur l'étoile grise",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la flanelle au-dessus du rond bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le sceau sur le rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la pancarte au-dessus du triangle gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le cil à côté de l'étoile rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la guitare à côté du carré bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le genou sur le rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la moto en dessous de l'étoile bleue",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le menteur à côté du rond vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le gala en dessous du rond rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le cinglé à côté du carré bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la graine en dessous du rond jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le pâté en dessous du triangle bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le précis sur le carré bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'intrus au-dessus du rond jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le secteur en dessous du rond gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le donjon à côté du triangle jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'égard en dessous du triangle rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le poussin en dessous du triangle jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le metteur sur le carré jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'arnaque en dessous de l'étoile rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la charrue sur le triangle jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le cigare au-dessus du rond jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la soucoupe sur l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le degré à côté de l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'atout sur l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le cyprès sur le rond jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le blâme sur le triangle bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la monnaie à côté du rond vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est les patins en dessous du carré vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la fierté au-dessus de l'étoile verte",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le reçu sur le triangle rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le voisin sur le rond bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la rigueur à côté du carré gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le goûter en dessous du carré bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le blafard au-dessus du carré bleu",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est morveux en dessous de l'étoile grise",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le satin sur l'étoile rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le fardeau sur l'étoile bleue",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le talus à côté du rond jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est le bouchon sur le triangle jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'osseux sur le carré gris",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la villa au-dessus de l'étoile jaune",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est cinquante sur le rond vert",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est l'étude sur l'étoile rouge",
+  },
+  {
+    situation: "whisper_in_the_rain",
+    stimulus: "c'est la bonté sur le rond vert",
+  },
 ];
 
 export default STIMULI;
