@@ -6,6 +6,14 @@
   margin-bottom: 20px;
 }
 
+.before_start{
+    padding: 100px;
+    align-items: center;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
 .rec-dot {
   width: 14px;
   height: 14px;

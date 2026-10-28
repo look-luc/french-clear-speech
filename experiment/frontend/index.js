@@ -153,7 +153,11 @@ if (consentGranted !== "true") {
 
   async function upload_and_transcribe(audio_blob, metadata) {
     const form_data = new FormData();
-    form_data.append("audio", audio_blob, "recording.webm");
+    form_data.append(
+      "audio",
+      audio_blob,
+      `recording_${metadata.subject}_${metadata.trial_index}.webm`,
+    );
     form_data.append("subject", metadata.subject);
     form_data.append("age", metadata.age);
     form_data.append("gender", metadata.gender);
@@ -180,8 +184,8 @@ if (consentGranted !== "true") {
   var before_start = {
     type: jsPsychHtmlKeyboardResponse,
     stimulus: `
-      <div>
-        Apres cette page, vous commencerez le portion d'essai. Le premier transcrit va prend un peut de temps que le reste, c'est normal, nous sommes en train de charger le modèl.
+      <div class="before_start">
+        Apres cette page, vous commencerez le portion d'essai. Le premier transcrit va prend un peut de temps que le reste, c'est normal, nous sommes en train de charger le modèl. Apres vous appuyez sur n’importe quelle touche de votre clavier ou appuyez le "Arretez Enregistrer" touche, l’enregistrement va commencé tout suite.
       </div>
       `,
   };
