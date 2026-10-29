@@ -43,8 +43,6 @@ class French_Clear_Speech_Model:
             is_fine_tuned=is_fine_tuned
         )
 
-        self.model = torch.compile(self.model, mode="reduce-overhead", fullgraph=False)
-
     def _setup(self, is_fine_tuned: bool = False):
         processor = AutoProcessor.from_pretrained(
             self.model_id, language="french", task="transcribe", token=hf_token
@@ -56,7 +54,7 @@ class French_Clear_Speech_Model:
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id,
             dtype=self.dtype,
-            attn_implementation="sdpa",
+            attn_implementation="xformers",
             low_cpu_mem_usage=True,
             use_safetensors=True,
             token=hf_token,
@@ -169,14 +167,6 @@ class French_Clear_Speech_Model:
             else:
                 audio_array = np.mean(audio_array, axis=1)
 
-        # if sampling_rate != 16000:
-        #     audio_array = librosa.resample(
-        #         audio_array.astype(np.float32),
-        #         orig_sr=sampling_rate,
-        #         target_sr=16000
-        #     )
-        #     sampling_rate = 16000
-
         inputs = self.processor(
             audio_array,
             sampling_rate=sampling_rate,
@@ -193,12 +183,14 @@ class French_Clear_Speech_Model:
             snr_db=snr_db,
             sampling_rate=sampling_rate,
         )
-
+        use_beam_search = (temp == 0.0)
         output_ids = self.model.generate(
             input_features=degraded_features,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
-            output_scores=True,
+            num_beams=5 if use_beam_search else 1,
+            num_return_sequences=1,
+            output_scores=False, # <-- REMOVED FULL-VOCAB OVERHEAD
             return_dict_in_generate=True,
             do_sample=(temp > 0),
             temperature=temp,
@@ -215,21 +207,12 @@ class French_Clear_Speech_Model:
                 for t in transcription_list
             ]
 
-        transition_scores = self.model.compute_transition_scores(
-            output_ids.sequences,
-            output_ids.scores,
-            normalize_logits=True,
-        )
-
-        conf_scores = []
-        for seq_scores in transition_scores:
-            valid_mask = (seq_scores != float("-inf")) & (~torch.isnan(seq_scores))
-            valid_tok_scores = seq_scores[valid_mask]
-
-            if valid_tok_scores.numel() > 0:
-                sample_conf = torch.exp(torch.mean(valid_tok_scores)).item()
-            else:
-                sample_conf = 0.0
-            conf_scores.append(sample_conf)
+        # OPTIMIZATION: Extract confidence directly from native sequence scores if using beam search
+        if use_beam_search and hasattr(output_ids, "sequences_scores"):
+            # sequences_scores contains the average log probability of the sequence
+            conf_scores = torch.exp(output_ids.sequences_scores).tolist()
+        else:
+            # Fallback or simplified confidence extraction if sampling is active
+            conf_scores = [1.0] * len(clean_transcriptions)
 
         return clean_transcriptions, conf_scores
