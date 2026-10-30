@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --partition=al40
+#SBATCH --partition=artxpro6000
 #SBATCH --qos=gpu-normal
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:rtx_pro_6000_2g.48gb:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -35,13 +35,19 @@ module purge
 module load cuda
 module load anaconda
 
+# 1. Properly initialize conda for non-interactive Slurm shell
+eval "$(conda shell.bash hook)"
 conda activate french_clear_speech
+
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-pip uninstall -y torchcodec
 
 cd /projects/$USER/french-clear-speech
 
 MODEL_TYPE=${1:-train}
 NOISE_TYPE=${2:-studio}
 SNR_DB=${4:-None}
-python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --snr_db "$SNR_DB"
+
+module load uv
+uv sync
+
+uv run run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --snr_db "$SNR_DB"

@@ -30,10 +30,10 @@ def run_model(what_model: str, noise_type, snr_db):
         model = experiment_model()
 
         # Define your specific audio files directly
-        audio_files = [
-            script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache01_11025_1.wav",
-            script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache02_11025_128.wav",
-        ]
+        audio_files = {
+            "tache 1": script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache01_11025_1.wav",
+            "tache 2": script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache02_11025_128.wav",
+        }
 
         noise_types = [
             "base",
@@ -70,11 +70,12 @@ def run_model(what_model: str, noise_type, snr_db):
 
                 confidence_scores = []
                 outputs[n_type] = {
-                    "confidence_list": [],
                     "avg confidence": 0.0,
                 }
+                for audio_name in audio_files.keys():
+                    outputs[n_type][audio_name] = []
 
-                for audio in audio_files:
+                for audio_name, audio in audio_files.items():
                     audio_array, sr = librosa.load(audio, sr=None, mono=True)
                     if sr != 16000:
                         audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
@@ -88,7 +89,7 @@ def run_model(what_model: str, noise_type, snr_db):
                         max_new_tokens=128,
                         return_transcriptions=False,
                     )
-                    outputs[n_type]["confidence_list"].extend(batch_confidences)
+                    outputs[n_type][audio_name].extend(batch_confidences)
                     confidence_scores.extend(batch_confidences)
 
                 outputs[n_type]["avg confidence"] = (
@@ -103,11 +104,12 @@ def run_model(what_model: str, noise_type, snr_db):
 
                 confidence_scores = []
                 outputs[types] = {
-                    "confidence_list": [],
                     "avg confidence": 0.0,
                 }
+                for audio_name in audio_files.keys():
+                    outputs[types][audio_name] = []
 
-                for audio in audio_files:
+                for audio_name, audio in audio_files.items():
                     audio_array, sr = librosa.load(audio, sr=None, mono=True)
 
                     # Resample to 16000 Hz here as well
@@ -122,36 +124,7 @@ def run_model(what_model: str, noise_type, snr_db):
                         max_new_tokens=128,
                         return_transcriptions=False,
                     )
-                    outputs[types]["confidence_list"].extend(batch_confidences)
-                    confidence_scores.extend(batch_confidences)
-
-                outputs[types]["avg confidence"] = (
-                    np.mean(confidence_scores) if confidence_scores else 0.0
-                )
-
-            # 2. Evaluate noise types on the specific audio files
-            for types in noise_types:
-                print("\n")
-                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
-                print(f"\n|noise type: {types}|\n")
-                print("|" + "=" * (len(str(types)) + len("noise type: ")) + "|")
-
-                confidence_scores = []
-                outputs[types] = {
-                    "confidence_list": [],
-                    "avg confidence": 0.0,
-                }
-
-                for audio in audio_files:
-                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
-                    _, batch_confidences = model.transcribe(
-                        audio_array=audio_array,
-                        noise_type=types,
-                        sampling_rate=sr,
-                        max_new_tokens=128,
-                        return_transcriptions=False,
-                    )
-                    outputs[types]["confidence_list"].extend(batch_confidences)
+                    outputs[types][audio_name].extend(batch_confidences)
                     confidence_scores.extend(batch_confidences)
 
                 outputs[types]["avg confidence"] = (
@@ -185,28 +158,33 @@ def run_model(what_model: str, noise_type, snr_db):
         plt.tight_layout()
         fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches="tight")
 
-        # Scatter plot generation
+        # Scatter plot generation with different shapes per audio file
         fig, ax = plt.subplots(figsize=(12, 8))
+        markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*']
 
         for i, noise in enumerate(noise_names):
-            scores = outputs[noise]["confidence_list"]
-            num_samples = len(scores)
-
-            if num_samples == 0:
-                continue
-
             category_x = x_positions[i]
-            jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
-            jittered_x = category_x + jitter
 
-            ax.scatter(
-                jittered_x,
-                scores,
-                alpha=0.7,
-                edgecolors="black",
-                linewidths=1,
-                label=noise,
-            )
+            for audio_idx, audio_name in enumerate(audio_files.keys()):
+                scores = outputs[noise][audio_name]
+                num_samples = len(scores)
+
+                if num_samples == 0:
+                    continue
+
+                jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
+                jittered_x = category_x + jitter
+                marker = markers[audio_idx % len(markers)]
+
+                ax.scatter(
+                    jittered_x,
+                    scores,
+                    alpha=0.7,
+                    edgecolors="black",
+                    linewidths=1,
+                    marker=marker,
+                    label=audio_name if i == 0 else "",
+                )
 
         ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
         ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
@@ -215,6 +193,7 @@ def run_model(what_model: str, noise_type, snr_db):
         )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
+        ax.legend(title="Audio File", loc="upper right")
 
         plt.tight_layout()
         fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
