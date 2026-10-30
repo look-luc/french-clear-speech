@@ -195,6 +195,11 @@ def run_model(what_model: str, noise_type, snr_db):
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
         ax.legend(title="Audio File", loc="upper right")
 
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        if by_label:
+            ax.legend(by_label.values(), by_label.keys(), title="Audio File", loc="upper right")
+
         plt.tight_layout()
         fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
 

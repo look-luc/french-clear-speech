@@ -63,6 +63,7 @@ class French_Clear_Speech_Model:
         model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
         model.generation_config.use_timestamps = False
         model.generation_config.no_timestamps_token_id = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
+        model.generation_config.max_length = None
 
         if is_fine_tuned:
             peft_model = PeftModel.from_pretrained(model, self.path_to_model)
@@ -190,7 +191,7 @@ class French_Clear_Speech_Model:
             max_new_tokens=max_new_tokens,
             num_beams=5 if use_beam_search else 1,
             num_return_sequences=1,
-            output_scores=False, # <-- REMOVED FULL-VOCAB OVERHEAD
+            output_scores=True,
             return_dict_in_generate=True,
             do_sample=(temp > 0),
             temperature=temp,
@@ -207,12 +208,8 @@ class French_Clear_Speech_Model:
                 for t in transcription_list
             ]
 
-        # OPTIMIZATION: Extract confidence directly from native sequence scores if using beam search
-        if use_beam_search and hasattr(output_ids, "sequences_scores"):
-            # sequences_scores contains the average log probability of the sequence
+        if use_beam_search and getattr(output_ids, "sequences_scores", None) is not None:
             conf_scores = torch.exp(output_ids.sequences_scores).tolist()
         else:
-            # Fallback or simplified confidence extraction if sampling is active
             conf_scores = [1.0] * len(clean_transcriptions)
-
         return clean_transcriptions, conf_scores
