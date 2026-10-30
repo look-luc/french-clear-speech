@@ -54,7 +54,7 @@ class French_Clear_Speech_Model:
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_id,
             dtype=self.dtype,
-            attn_implementation="xformers",
+            attn_implementation="sdpa",
             low_cpu_mem_usage=True,
             use_safetensors=True,
             token=hf_token,
