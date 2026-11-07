@@ -1,12 +1,13 @@
 import os
 from functools import partial
 from pathlib import Path
+from typing import Any, cast
 
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from datasets import concatenate_datasets
+from datasets import concatenate_datasets, load_dataset
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
 
@@ -29,11 +30,19 @@ def run_model(what_model: str, noise_type, snr_db):
         outputs = {}
         model = experiment_model()
 
-        # Define your specific audio files directly
-        audio_files = {
-            "tache 1": script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache01_11025_1.wav",
-            "tache 2": script_dir.parent.parent / "french-clear-speech" / "data" / "DATA_AnnaL_tache02_11025_128.wav",
-        }
+        # Define the directory containing your local lecture audio files
+        lecture_dir = script_dir.parent / "data" / "lecture"
+        audio_extensions = [".wav", ".mp3", ".m4a", ".flac"]
+
+        audio_files = {}
+        if lecture_dir.exists():
+            for audio_path in lecture_dir.iterdir():
+                if audio_path.suffix.lower() in audio_extensions:
+                    audio_name = audio_path.stem
+                    audio_files[audio_name] = audio_path
+
+        if not audio_files:
+            print(f"Warning: No audio files found in {lecture_dir}")
 
         noise_types = [
             "base",
@@ -75,8 +84,9 @@ def run_model(what_model: str, noise_type, snr_db):
                 for audio_name in audio_files.keys():
                     outputs[n_type][audio_name] = []
 
-                for audio_name, audio in audio_files.items():
-                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
+                for audio_name, audio_path in audio_files.items():
+                    audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
+
                     if sr != 16000:
                         audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
                         sr = 16000
@@ -109,10 +119,9 @@ def run_model(what_model: str, noise_type, snr_db):
                 for audio_name in audio_files.keys():
                     outputs[types][audio_name] = []
 
-                for audio_name, audio in audio_files.items():
-                    audio_array, sr = librosa.load(audio, sr=None, mono=True)
+                for audio_name, audio_path in audio_files.items():
+                    audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
 
-                    # Resample to 16000 Hz here as well
                     if sr != 16000:
                         audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
                         sr = 16000
@@ -150,7 +159,7 @@ def run_model(what_model: str, noise_type, snr_db):
         ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
         ax.set_ylabel("Average Confidence", fontweight="bold", fontsize=12)
         ax.set_title(
-            "Model Confidence Across Noise Types (Custom Audio)", fontweight="bold", fontsize=14
+            "Model Confidence Across Noise Types (Lecture Audio)", fontweight="bold", fontsize=14
         )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
@@ -166,6 +175,9 @@ def run_model(what_model: str, noise_type, snr_db):
             category_x = x_positions[i]
 
             for audio_idx, audio_name in enumerate(audio_files.keys()):
+                if "CL" not in audio_name and "CS" not in audio_name:
+                    continue
+
                 scores = outputs[noise][audio_name]
                 num_samples = len(scores)
 
@@ -174,7 +186,7 @@ def run_model(what_model: str, noise_type, snr_db):
 
                 jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
                 jittered_x = category_x + jitter
-                marker = markers[audio_idx % len(markers)]
+                marker = 's' if audio_name == "CL" else '^' if audio_name == "CS" else markers[-1]
 
                 ax.scatter(
                     jittered_x,
@@ -189,16 +201,26 @@ def run_model(what_model: str, noise_type, snr_db):
         ax.set_xlabel("Noise Type", fontweight="bold", fontsize=12)
         ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
         ax.set_title(
-            "Individual Confidences Across Noise Types (Custom Audio)", fontweight="bold", fontsize=14
+            "Individual Confidences Across Noise Types (Lecture Audio)", fontweight="bold", fontsize=14
         )
         ax.set_xticks(x_positions)
         ax.set_xticklabels(noise_names, rotation=45, ha="right")
-        ax.legend(title="Audio File", loc="upper right")
 
+        # General Legend Cleanup: Deduplicate handles and labels for a clean global legend
         handles, labels = ax.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
+        by_label = {}
+        for handle, label in zip(handles, labels):
+            if label and label not in by_label and ("CL" in label or "CS" in label):
+                by_label[label] = handle
+
         if by_label:
-            ax.legend(by_label.values(), by_label.keys(), title="Audio File", loc="upper right")
+            ax.legend(
+                by_label.values(),
+                by_label.keys(),
+                title="Audio File",
+                loc="upper right",
+                frameon=True
+            )
 
         plt.tight_layout()
         fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
