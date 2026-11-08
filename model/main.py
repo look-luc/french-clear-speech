@@ -152,8 +152,8 @@ def run_model(what_model: str, noise_type, snr_db):
             category_x = x_positions[i]
 
             for audio_idx, audio_name in enumerate(audio_files.keys()):
-                has_cl = any(part == "CL" for part in audio_name.split("_"))
-                has_cs = any(part == "CS" for part in audio_name.split("_"))
+                has_cl = any("lectureCl" in part for part in audio_name.split("_"))
+                has_cs = any("lectureCS" in part for part in audio_name.split("_"))
 
                 if not has_cl and not has_cs:
                     continue
@@ -166,7 +166,7 @@ def run_model(what_model: str, noise_type, snr_db):
 
                 jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
                 jittered_x = category_x + jitter
-                marker = 's' if has_cl else '^' if has_cs else markers[-1]
+                marker = 'o' if has_cl else '^' if has_cs else markers[-1]
 
                 ax.scatter(
                     jittered_x,
@@ -189,7 +189,7 @@ def run_model(what_model: str, noise_type, snr_db):
         handles, labels = ax.get_legend_handles_labels()
         by_label = {}
         for handle, label in zip(handles, labels):
-            if label and label not in by_label and ("CL" in label or "CS" in label):
+            if label and label not in by_label and ("Cl" in label or "CS" in label):
                 by_label[label] = handle
 
         if by_label:
