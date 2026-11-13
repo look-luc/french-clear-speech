@@ -6,6 +6,7 @@ from typing import Any, cast
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 from datasets import concatenate_datasets, load_dataset
 from dotenv import load_dotenv
@@ -45,16 +46,6 @@ def run_model(what_model: str, noise_type, snr_db):
             print(f"Warning: No audio files found in {lecture_dir}")
 
         noise_types = [
-            "base",
-            "crystal_void",
-            "absolute_acoustic",
-            "studio_silence",
-            "silver_spectrum",
-            "broadcast_beam",
-            "clear_horizon",
-            "vintage_magnetic",
-            "magnetic",
-            "fog_on_the_wire",
             "relay",
             "shortwave_relay",
             "whisper_in_the_rain",
@@ -144,16 +135,25 @@ def run_model(what_model: str, noise_type, snr_db):
         plt.tight_layout()
         fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches="tight")
 
-        # Scatter plot generation with different shapes per audio file
+        # Scatter plot generation with different shapes per audio file and color-coded by file start
         fig, ax = plt.subplots(figsize=(14, 8))
         markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*']
+
+        # 1. Group audio files by the start of their filename (base name without Cl/CS)
+        audio_file_list = list(audio_files.keys())
+        base_name_list = sorted(list(set(
+            audio_name.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "")
+            for audio_name in audio_file_list
+        )))
+        colors = plt.get_cmap('tab10', len(base_name_list) if len(base_name_list) > 0 else 1)
+        base_color_map = {base_name: colors(i) for i, base_name in enumerate(base_name_list)}
 
         for i, cond in enumerate(condition_keys):
             category_x = x_positions[i]
 
             for audio_idx, audio_name in enumerate(audio_files.keys()):
-                has_cl = any("lectureCl" in part for part in audio_name.split("_"))
-                has_cs = any("lectureCS" in part for part in audio_name.split("_"))
+                has_cl = any(("lectureCl" in part for part in audio_name.split("_")) or "lectureCL" in part for part in audio_name.split("_"))
+                has_cs = any(("lectureCS" in part for part in audio_name.split("_")) or "lectureCs" in part for part in audio_name.split("_"))
 
                 if not has_cl and not has_cs:
                     continue
@@ -168,9 +168,13 @@ def run_model(what_model: str, noise_type, snr_db):
                 jittered_x = category_x + jitter
                 marker = 'o' if has_cl else '^' if has_cs else markers[-1]
 
+                base_name = audio_name.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "")
+                file_color = base_color_map[base_name]
+
                 ax.scatter(
                     jittered_x,
                     scores,
+                    color=file_color,  # Color-coded by the start of the file
                     alpha=0.7,
                     edgecolors="black",
                     linewidths=1,
@@ -189,7 +193,7 @@ def run_model(what_model: str, noise_type, snr_db):
         handles, labels = ax.get_legend_handles_labels()
         by_label = {}
         for handle, label in zip(handles, labels):
-            if label and label not in by_label and ("Cl" in label or "CS" in label):
+            if label and label not in by_label and ("Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)):
                 by_label[label] = handle
 
         if by_label:
