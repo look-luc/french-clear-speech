@@ -137,23 +137,28 @@ def run_model(what_model: str, noise_type, snr_db):
 
         # Scatter plot generation with different shapes per audio file and color-coded by file start
         fig, ax = plt.subplots(figsize=(14, 8))
-        markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*']
+        markers = ['o', '^', 's', 'D', 'v', 'P', 'X', '*']
 
-        # 1. Group audio files by the start of their filename (base name without Cl/CS)
+        # 1. Extract unique base names (ignoring Cl/CS and trailing numbers/underscores) for consistent coloring
         audio_file_list = list(audio_files.keys())
-        base_name_list = sorted(list(set(
-            audio_name.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "")
-            for audio_name in audio_file_list
-        )))
-        colors = plt.get_cmap('tab10', len(base_name_list) if len(base_name_list) > 0 else 1)
-        base_color_map = {base_name: colors(i) for i, base_name in enumerate(base_name_list)}
+        base_names = []
+        for audio_name in audio_file_list:
+            base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
+            base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+            if not base:
+                base = audio_name
+            base_names.append(base)
+
+        unique_base_names = sorted(list(set(base_names)))
+        colors = plt.get_cmap('tab10', len(unique_base_names) if len(unique_base_names) > 0 else 1)
+        base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
         for i, cond in enumerate(condition_keys):
             category_x = x_positions[i]
 
             for audio_idx, audio_name in enumerate(audio_files.keys()):
-                has_cl = any(("lectureCl" in part for part in audio_name.split("_")) or "lectureCL" in part for part in audio_name.split("_"))
-                has_cs = any(("lectureCS" in part for part in audio_name.split("_")) or "lectureCs" in part for part in audio_name.split("_"))
+                has_cl = any(sub in audio_name for sub in ["Cl", "cl", "CL"])
+                has_cs = any(sub in audio_name for sub in ["CS", "cs", "Cs"])
 
                 if not has_cl and not has_cs:
                     continue
@@ -166,48 +171,27 @@ def run_model(what_model: str, noise_type, snr_db):
 
                 jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
                 jittered_x = category_x + jitter
+
+                # 2. Assign shapes: 'o' for Cl variants, '^' for CS variants
                 marker = 'o' if has_cl else '^' if has_cs else markers[-1]
 
-                base_name = audio_name.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "")
-                file_color = base_color_map[base_name]
+                # 3. Map color based on the base name so matching files share the same color
+                base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
+                base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+                if not base:
+                    base = audio_name
+                file_color = base_color_map[base]
 
                 ax.scatter(
                     jittered_x,
                     scores,
-                    color=file_color,  # Color-coded by the start of the file
+                    color=file_color,
                     alpha=0.7,
                     edgecolors="black",
                     linewidths=1,
                     marker=marker,
                     label=audio_name if i == 0 else "",
                 )
-
-        ax.set_xlabel("Condition / Noise Type", fontweight="bold", fontsize=12)
-        ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
-        ax.set_title(
-            "Individual Confidences Across Conditions (Lecture Audio)", fontweight="bold", fontsize=14
-        )
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(noise_names, rotation=60, ha="right", fontsize=10)
-
-        handles, labels = ax.get_legend_handles_labels()
-        by_label = {}
-        for handle, label in zip(handles, labels):
-            if label and label not in by_label and ("Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)):
-                by_label[label] = handle
-
-        if by_label:
-            ax.legend(
-                by_label.values(),
-                by_label.keys(),
-                title="Audio File",
-                loc="upper right",
-                frameon=True,
-                fontsize=8
-            )
-
-        plt.tight_layout()
-        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
 
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
