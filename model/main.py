@@ -1,25 +1,20 @@
 import os
-from functools import partial
 from pathlib import Path
-from typing import Any, cast
 
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-from datasets import concatenate_datasets, load_dataset
 from dotenv import load_dotenv
-from torch.utils.data import DataLoader
-
-from model.get_data.get_data import get_data
 
 from .graph_metric.graph import metrics_graph
-from .transcription_model.base_model import French_Speech_text_base, simple_progress
+from .transcription_model.base_model import French_Speech_text_base
 from .transcription_model.model import French_Speech_text
 from .transcription_model.model_experiment import (
     French_Clear_Speech_Model as experiment_model,
 )
+from .transcription_model.model_experiment import Qwen_clear_speech_model as qwen
 
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
@@ -29,7 +24,7 @@ script_dir = Path(__file__).resolve().parent
 def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
-        model = experiment_model()
+        model = qwen()
 
         # Define the directory containing your local lecture audio files
         lecture_dir = script_dir.parent / "data" / "lecture"

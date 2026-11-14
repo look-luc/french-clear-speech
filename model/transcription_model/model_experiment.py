@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from peft import PeftModel
 from transformers import (
     AutoFeatureExtractor,
+    AutoModelForMultimodalLM,
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
 )
@@ -23,18 +24,163 @@ script_path = Path(__file__).resolve().parent
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
 
+class Qwen_clear_speech_model:
+    def __init__(self) -> None:
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        self.model_id = "Qwen/Qwen3-ASR-0.6B-hf"
+        self.processor = AutoProcessor.from_pretrained(self.model_id)
+        self.model = AutoModelForMultimodalLM.from_pretrained(self.model_id, device_map=self.device)
+
+        self.dtype = torch.float16 if self.device == "cuda" else torch.float32
+
+        if self.device == "cuda":
+            torch.set_float32_matmul_precision("high")
+    def _get_noise_params(
+        self, noise_type: str | None
+    ) -> float | int | None:
+        if noise_type is None:
+            return None
+
+        match noise_type.lower():
+            case "base":
+                return None
+            case "crystal_void":
+                return 50
+            case "absolute_acoustic":
+                return 45
+            case "studio_silence":
+                return 40
+            case "silver_spectrum":
+                return 35
+            case "broadcast_beam":
+                return 30
+            case "clear_horizon":
+                return 25
+            case "vintage_magnetic":
+                return 20
+            case "magnetic":
+                return 15
+            case "fog_on_the_wire":
+                return 10
+            case "relay":
+                return 5
+            case "shortwave_relay":
+                return 0
+            case "whisper_in_the_rain":
+                return -5
+            case "broadcast":
+                return -10
+            case "high_end_studio":
+                return -15
+            case "studio":
+                return -20
+            case "quiet_home":
+                return -25
+            case "library":
+                return -30
+            case "mild_office":
+                return -35
+            case "moderate_cafe":
+                return -40
+            case "severe_street":
+                return -45
+            case "extreme_cocktail":
+                return -50
+            case _:
+                return None
+
+    def _apply_acoustic_degradation(
+        self,
+        input_features: torch.Tensor,
+        noise_type: str | None = None,
+        snr_db: float | None = None,
+        sampling_rate: int = 16000,
+    ) -> torch.Tensor:
+        """Calculates and applies lowpass frequency masking and noise injection on log-mel tensors."""
+        if noise_type is not None:
+            env_snr = self._get_noise_params(noise_type)
+            snr_db = snr_db if snr_db is not None else env_snr
+
+        degraded = input_features.clone()
+
+        if snr_db is not None:
+            noise_std = 10.0 ** (-snr_db / 20.0)
+            noise = torch.randn_like(degraded) * noise_std
+            degraded = degraded + noise
+
+        return degraded
+
+    @torch.inference_mode()
+    def transcribe(
+        self,
+        audio_array: torch.Tensor | np.ndarray,
+        noise_type: str | None = "studio",
+        snr_db: int | float | None = None,
+        sampling_rate: int = 16000,
+        temp: float = 0.0,
+        max_new_tokens: int = 128,
+        return_transcriptions: bool = True,
+    ):
+        if isinstance(audio_array, torch.Tensor):
+            audio_array = audio_array.detach().cpu().numpy()
+
+        if isinstance(audio_array, np.ndarray) and audio_array.ndim > 1:
+            if audio_array.shape[0] < audio_array.shape[1]:
+                audio_array = np.mean(audio_array, axis=0)
+            else:
+                audio_array = np.mean(audio_array, axis=1)
+
+        inputs = self.processor.apply_transcription_request(
+            audio_array,
+            sampling_rate=sampling_rate,
+            return_tensors="pt",
+            return_attention_mask=True,
+        )
+        input_features = inputs.input_features.to(device=self.device, dtype=self.dtype)
+        attention_mask = inputs.attention_mask.to(device=self.device) if "attention_mask" in inputs else None
+
+        degraded_features = self._apply_acoustic_degradation(
+            input_features=input_features,
+            noise_type=noise_type,
+            snr_db=snr_db,
+            sampling_rate=sampling_rate,
+        )
+        use_beam_search = (temp == 0.0)
+
+        output_ids = self.model.generate(
+            input_features=degraded_features,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+            num_beams=5 if use_beam_search else 1,
+            num_return_sequences=1,
+            output_scores=True,
+            return_dict_in_generate=True,
+            do_sample=(temp > 0),
+            temperature=temp,
+        )
+
+        generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+        if return_transcriptions:
+            transcription = self. processor.decode(generated_ids, return_format="transcription_only")[0]
+        else:
+            transcription = self.processor.decode(generated_ids, return_format="parsed")[0]
+
+        if use_beam_search and getattr(output_ids, "sequences_scores", None) is not None:
+            conf_scores = torch.exp(output_ids.sequences_scores).tolist()
+        else:
+            conf_scores = [1.0] * len(transcription)
+        return transcription, conf_scores
 
 class French_Clear_Speech_Model:
     def __init__(
         self,
-        model_id: str = "bofenghuang/whisper-medium-french",
-        path_to_model: str = f"{script_path}/whisper-french-experiment",
         is_fine_tuned: bool = False,
     ) -> None:
-        self.model_id = model_id
+        self.model_id = "bofenghuang/whisper-medium-french",
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.dtype = torch.float16 if self.device == "cuda" else torch.float32
-        self.path_to_model = path_to_model
+        self.path_to_model = f"{script_path}/whisper-french-experiment"
 
         if self.device == "cuda":
             torch.set_float32_matmul_precision("high")
