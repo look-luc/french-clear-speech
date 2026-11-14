@@ -27,15 +27,22 @@ wer_metric = evaluate.load("wer")
 class Qwen_clear_speech_model:
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if self.device == "cuda" and torch.cuda.is_bf16_supported():
+            self.dtype = torch.bfloat16
+        else:
+            self.dtype = torch.float16 if self.device == "cuda" else torch.float32
 
         self.model_id = "Qwen/Qwen3-ASR-0.6B-hf"
         self.processor = AutoProcessor.from_pretrained(self.model_id)
-        self.model = AutoModelForMultimodalLM.from_pretrained(self.model_id, device_map=self.device)
-
-        self.dtype = torch.float16 if self.device == "cuda" else torch.float32
+        self.model = AutoModelForMultimodalLM.from_pretrained(
+            self.model_id,
+            device_map=self.device,
+            torch_dtype=self.dtype
+        )
 
         if self.device == "cuda":
             torch.set_float32_matmul_precision("high")
+
     def _get_noise_params(
         self, noise_type: str | None
     ) -> float | int | None:
@@ -137,20 +144,23 @@ class Qwen_clear_speech_model:
             return_tensors="pt",
             return_attention_mask=True,
         )
-        input_features = inputs.input_features.to(device=self.device, dtype=self.dtype)
-        attention_mask = inputs.attention_mask.to(device=self.device) if "attention_mask" in inputs else None
 
+        # Ensure input_features match self.dtype (bfloat16 or float16)
+        input_features = inputs["input_features"].to(device=self.device, dtype=self.dtype)
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
             noise_type=noise_type,
             snr_db=snr_db,
             sampling_rate=sampling_rate,
         )
+
+        inputs = inputs.to(self.device)
+        inputs["input_features"] = degraded_features
+
         use_beam_search = (temp == 0.0)
 
         output_ids = self.model.generate(
-            input_features=degraded_features,
-            attention_mask=attention_mask,
+            **inputs,
             max_new_tokens=max_new_tokens,
             num_beams=5 if use_beam_search else 1,
             num_return_sequences=1,
@@ -160,16 +170,16 @@ class Qwen_clear_speech_model:
             temperature=temp,
         )
 
-        generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+        generated_ids = output_ids.sequences[:, inputs["input_ids"].shape[1]:]
         if return_transcriptions:
-            transcription = self. processor.decode(generated_ids, return_format="transcription_only")[0]
+            transcription = self.processor.decode(generated_ids, return_format="transcription_only")[0]
         else:
             transcription = self.processor.decode(generated_ids, return_format="parsed")[0]
 
         if use_beam_search and getattr(output_ids, "sequences_scores", None) is not None:
             conf_scores = torch.exp(output_ids.sequences_scores).tolist()
         else:
-            conf_scores = [1.0] * len(transcription)
+            conf_scores = [1.0] * len(transcription) if isinstance(transcription, list) else [1.0]
         return transcription, conf_scores
 
 class French_Clear_Speech_Model:
