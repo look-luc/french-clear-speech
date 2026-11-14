@@ -15,6 +15,7 @@ dependencies = [
     "librosa>=1.0.0",
     "matplotlib>=3.11.2",
     "numpy>=2.5.4",
+    "openpyxl>=3.1.5",
     "peft>=0.21.2",
     "seaborn>=0.13.2",
     "torch>=2.15.0",
