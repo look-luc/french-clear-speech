@@ -153,6 +153,9 @@ def run_model(what_model: str, noise_type, snr_db):
         colors = plt.get_cmap('tab10', len(unique_base_names) if len(unique_base_names) > 0 else 1)
         base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
+        scores_df = pd.DataFrame(outputs)
+        scores_df.to_csv("output.csv", index=False)
+
         for i, cond in enumerate(condition_keys):
             category_x = x_positions[i]
 
@@ -192,6 +195,33 @@ def run_model(what_model: str, noise_type, snr_db):
                     marker=marker,
                     label=audio_name if i == 0 else "",
                 )
+
+        ax.set_xlabel("Condition / Noise Type", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
+        ax.set_title(
+            "Individual Confidences Across Conditions (Lecture Audio)", fontweight="bold", fontsize=14
+        )
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(noise_names, rotation=60, ha="right", fontsize=10)
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = {}
+        for handle, label in zip(handles, labels):
+            if label and label not in by_label and ("Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)):
+                by_label[label] = handle
+
+        if by_label:
+            ax.legend(
+                by_label.values(),
+                by_label.keys(),
+                title="Audio File",
+                loc="upper right",
+                frameon=True,
+                fontsize=8
+            )
+
+        plt.tight_layout()
+        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
 
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
