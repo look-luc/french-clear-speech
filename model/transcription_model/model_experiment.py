@@ -32,7 +32,7 @@ class Qwen_clear_speech_model:
         else:
             self.dtype = torch.float16 if self.device == "cuda" else torch.float32
 
-        self.model_id = "Qwen/Qwen3-ASR-0.6B-hf"
+        self.model_id = "Qwen/Qwen3-ASR-1,7B-hf"
         self.processor = AutoProcessor.from_pretrained(self.model_id)
         self.model = AutoModelForMultimodalLM.from_pretrained(
             self.model_id,
