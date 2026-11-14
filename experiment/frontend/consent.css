@@ -1,12 +1,11 @@
 body {
     display: grid;
-    /* Use flexible columns or fit-content instead of fixed 500px */
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
     justify-content: center;
+    justify-items: center;
     align-items: start;
     gap: 20px;
 
-    /* Increased max-width to give two side-by-side cards room */
     max-width: 1050px;
     margin: 50px auto;
     padding: 0 20px;
@@ -15,7 +14,11 @@ body {
     line-height: 1.6;
     font-size: 18px;
 }
+
 .consent-card {
+    width: 100%;
+    max-width: 500px;
+    align-items: center;
     border: 1px solid #dcdcdc;
     padding: 30px;
     border-radius: 8px;

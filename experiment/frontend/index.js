@@ -1,3 +1,5 @@
+import STIMULI from "./stimuli.js";
+
 const consentGranted = sessionStorage.getItem("consent_granted");
 if (consentGranted !== "true") {
   window.location.href = "consent.html";
@@ -10,6 +12,8 @@ if (consentGranted !== "true") {
   });
 
   var subject_id = jsPsych.randomization.randomID(10);
+  var global_age = null;
+  var global_gender = null;
 
   jsPsych.data.addProperties({
     subject: subject_id,
@@ -20,18 +24,6 @@ if (consentGranted !== "true") {
     consent_timestamp: sessionStorage.getItem("consent_timestamp"),
   });
   var timeline = [];
-  function parseFormHTML(htmlString) {
-    var div = document.createElement("div");
-    div.innerHTML = htmlString;
-    var formData = {};
-    var inputs = div.querySelectorAll("input, select, textarea");
-    inputs.forEach((input) => {
-      if (input.name) {
-        formData[input.name] = input.value;
-      }
-    });
-    return formData;
-  }
 
   var welcome = {
     type: jsPsychSurvey,
@@ -44,8 +36,6 @@ if (consentGranted !== "true") {
               name: "welcome_text",
               html: `
                   <div class="welcome-eng">
-                    <p><strong>Welcome to the experiment.</strong></p>
-                    <p>You will be prompted to say a phrase as clear as possible given the situation that the phrase is in. You have only ONE (1) chance to record. Once you are done recording, a transcription will show with the percentage of what the "listener" heard what you said.</p>
                     <p><strong>Bienvenue à l'expérience.</strong></p>
                     <p>Vous serez invité à dire une phrase aussi clair que possible pendant la situation que la phrase est dans. Vous avez juste UNE (1) chance pour enregistrer. Quand vous avez terminé, une transcription va montrer avec le pourcentage de quoi la "personne qui l'écoute" a écouté que vous avez dire.</p>
                   </div>
@@ -55,23 +45,23 @@ if (consentGranted !== "true") {
             {
               type: "text",
               name: "dob",
-              title: "Date of Birth / Date de Naissance:",
+              title: "Date de Naissance:",
               inputType: "date",
               isRequired: true,
             },
             {
               type: "radiogroup",
               name: "gender",
-              title: "Select an option / Choisissez une option:",
+              title: "Choisissez une option:",
               isRequired: true,
               choices: [
-                { value: "male", text: "Male / Mâle" },
-                { value: "female", text: "Female / Femelle" },
+                { value: "male", text: "Mâle" },
+                { value: "female", text: "Femelle" },
                 {
-                  value: "Non-Binary / Non-Binaire",
-                  text: "Non-Binary / Non-Binaire",
+                  value: "Non-Binaire",
+                  text: "Non-Binaire",
                 },
-                { value: "Other / Autre", text: "Other / Autre" },
+                { value: "Autre", text: "Autre" },
               ],
             },
           ],
@@ -93,6 +83,9 @@ if (consentGranted !== "true") {
         age--;
       }
 
+      global_age = age;
+      global_gender = genderVal;
+
       jsPsych.data.addProperties({
         age: age,
         gender: genderVal,
@@ -103,9 +96,8 @@ if (consentGranted !== "true") {
 
   var init_mic = {
     type: jsPsychInitializeMicrophone,
-    device_select_message:
-      "Please select your microphone/S'il vous plaît choisir votre microphone:",
-    button_label: "Use this microphone/Utilisez cette microphone",
+    device_select_message: "S'il vous plaît choisir votre microphone:",
+    button_label: "Utilisez cette microphone",
   };
   timeline.push(init_mic);
 
@@ -119,7 +111,6 @@ if (consentGranted !== "true") {
           <span class="rec-text">Recording: </span>
           <span id="timer-display" class="timer">5 seconds</span>
         </div>
-        <p>Please say <strong>"test"</strong> to check your microphone.</p>
         <p>S'il vous plaît dis <strong>"test"</strong> pour le vérification votre microphone</p>
       `,
     recording_duration: 5000,
@@ -162,9 +153,14 @@ if (consentGranted !== "true") {
 
   async function upload_and_transcribe(audio_blob, metadata) {
     const form_data = new FormData();
-    form_data.append("audio", audio_blob, "recording.webm");
+    form_data.append(
+      "audio",
+      audio_blob,
+      `recording_${metadata.subject}_${metadata.trial_index}.webm`,
+    );
     form_data.append("subject", metadata.subject);
     form_data.append("age", metadata.age);
+    form_data.append("gender", metadata.gender);
     form_data.append("trial_index", metadata.trial_index);
     form_data.append("stimulus", metadata.stimulus);
     form_data.append("custom_tag", metadata.custom_tag);
@@ -185,13 +181,23 @@ if (consentGranted !== "true") {
   var audio_blob = null;
   var metadata = null;
 
+  var before_start = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <div class="before_start">
+        Apres cette page, vous commencerez le portion d'essai. Le premier transcrit va prend un peut de temps que le reste, c'est normal, nous sommes en train de charger le modèl. Apres vous appuyez sur n’importe quelle touche de votre clavier ou appuyez le "Arretez Enregistrer" touche, l’enregistrement va commencé tout suite.
+      </div>
+      `,
+  };
+
   var test_run = {
     type: jsPsychHtmlAudioResponse,
     stimulus: jsPsych.timelineVariable("stimulus"),
+    noise_type: jsPsych.timelineVariable("situation"),
     show_done_button: true,
     recording_duration: 30000,
     allow_playback: false,
-    done_button_label: "Stop Recording/Arretez Enregistrer",
+    done_button_label: "Arretez Enregistrer",
     data: {
       custom_tag: "clear_speech",
     },
@@ -200,8 +206,10 @@ if (consentGranted !== "true") {
 
       metadata = {
         subject: subject_id,
+        age: global_age,
+        gender: global_gender,
         trial_index: data.trial_index,
-        stimulus: data.stimulus,
+        stimulus: jsPsych.evaluateTimelineVariable("stimulus"),
         custom_tag: data.custom_tag,
       };
     },
@@ -259,17 +267,16 @@ if (consentGranted !== "true") {
       const prev_data = jsPsych.data.get().last(1).values()[0];
       const text = prev_data.model_transcript;
       const confidence_prct = Math.round((prev_data.confidence || 0) * 100);
-      return (
-        "<div>Je suis <b>" +
-        confidence_prct +
-        "%</b> sûr que vous avez dit: <b>" +
-        text +
-        "</b></div>"
-      );
+      if (confidence_prct > 33) {
+        return "<div>Ah <b>" + text + "</b></div>";
+      } else {
+        return "<div>Je ne vous comprends pas.";
+      }
     },
     choices: ["Continue"],
   };
 
+  timeline.push(before_start);
   const test_procedure = {
     timeline: [test_run, processing_audio, jspsych_display_trial],
     timeline_variables: STIMULI,
@@ -277,6 +284,16 @@ if (consentGranted !== "true") {
   };
 
   timeline.push(test_procedure);
+
+  const thank_you_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <h1>Merci!</h1>
+      <p>Vous avez fini cette l'expérience. Vous pouvez fermer cet onglet.</p>
+    `,
+    choices: "NO_KEYS",
+  };
+  timeline.push(thank_you_trial);
 
   jsPsych.run(timeline);
 }

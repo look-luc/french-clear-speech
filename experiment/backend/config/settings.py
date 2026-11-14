@@ -17,7 +17,6 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-key-for-dev")
 DATABASE_PASSWORD = str(os.getenv("DATABASE_PASSWORD"))
 PORT = os.getenv("PORT_VAL")

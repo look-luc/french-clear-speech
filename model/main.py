@@ -1,9 +1,14 @@
 import os
+from functools import partial
 from pathlib import Path
+from typing import Any, cast
 
+import librosa
 import matplotlib.pyplot as plt
 import numpy as np
-from datasets import concatenate_datasets
+import pandas as pd
+import torch
+from datasets import concatenate_datasets, load_dataset
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
 
@@ -19,143 +24,215 @@ from .transcription_model.model_experiment import (
 load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
-def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
+script_dir = Path(__file__).resolve().parent
+
+def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
         model = experiment_model()
-        def collate_fn(batch):
-            input_list = [item["input_features"] for item in batch]
-            label_list = [item["labels"] for item in batch]
 
-            padded_inputs = model.processor.feature_extractor.pad(
-                [{"input_features": f} for f in input_list],
-                return_tensors="pt",
-            )
+        # Define the directory containing your local lecture audio files
+        lecture_dir = script_dir.parent / "data" / "lecture"
+        audio_extensions = [".wav", ".mp3", ".m4a", ".flac"]
 
-            padded_labels = model.processor.tokenizer.pad(
-                [{"input_ids": label} for label in label_list],
-                return_tensors="pt",
-            )
+        audio_files = {}
+        if lecture_dir.exists():
+            for audio_path in lecture_dir.iterdir():
+                if audio_path.suffix.lower() in audio_extensions:
+                    audio_name = audio_path.stem
+                    audio_files[audio_name] = audio_path
 
-            labels_tensor = padded_labels["input_ids"].masked_fill(
-                padded_labels.attention_mask.ne(1), -100
-            )
+        if not audio_files:
+            print(f"Warning: No audio files found in {lecture_dir}")
 
-            if all(labels_tensor[:, 0] == model.processor.tokenizer.bos_token_id):
-                labels_tensor = labels_tensor[:, 1:]
-
-            return {
-                "input_features": padded_inputs["input_features"],
-                "labels": labels_tensor,
-            }
-        train_dataset, test_dataset = get_data(model.processor, model.feature_extractor)
-        combined_data = concatenate_datasets([train_dataset, test_dataset]).with_format("torch")
-        dataloader = DataLoader(
-            combined_data,
-            batch_size=64,
-            collate_fn=collate_fn,
-            shuffle=False,
-            num_workers=2,
-            pin_memory=True,
-        )
         noise_types = [
-            "base",
-            "crystal_void",
-            "clear_horizon",
+            "relay",
+            "shortwave_relay",
+            "whisper_in_the_rain",
             "broadcast",
+            "high_end_studio",
+            "studio",
+            "quiet_home",
+            "library",
+            "mild_office",
             "moderate_cafe",
+            "severe_street",
             "extreme_cocktail"
         ]
-        for noise_type in noise_types:
-            print("\n")
-            print("|" + "="*(len(noise_type)+len("noise type: ")) + "|")
-            print(f"\n|noise type: {noise_type}|\n")
-            print("|" + "="*(len(noise_type)+len("noise type: ")) + "|")
-            confidence = []
-            outputs[noise_type] = {
-                "confidence": {},
-                "avg confidence": 0.0,
-            }
-            for batch in simple_progress(dataloader, desc="testing noise"):
-                transcriptions, batch_confidences = model.transcribe(
-                    audio_array=batch["input_features"],
-                    noise_type=noise_type,
-                    cutoff_freq=cutoff_freq,
-                    snr_db=snr_db,
+        snr_targets = [-2.5, -7.5]
+        condition_keys = list(snr_targets) + noise_types
+        with torch.inference_mode():
+            for cond in condition_keys:
+                is_snr = isinstance(cond, (int, float))
+                print("\n")
+                print("|" + "=" * (len(str(cond)) + len("condition: ")) + "|")
+                print(f"\n|condition: {cond}|\n")
+                print("|" + "=" * (len(str(cond)) + len("condition: ")) + "|")
+
+                confidence_scores = []
+                outputs[cond] = {
+                    "avg confidence": 0.0,
+                }
+                for audio_name in audio_files.keys():
+                    outputs[cond][audio_name] = []
+
+                for audio_name, audio_path in audio_files.items():
+                    audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
+
+                    if sr != 16000:
+                        audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
+                        sr = 16000
+
+                    if is_snr:
+                        _, batch_confidences = model.transcribe(
+                            audio_array=audio_array,
+                            noise_type=None,
+                            snr_db=cond,
+                            sampling_rate=sr,
+                            max_new_tokens=128,
+                            return_transcriptions=False,
+                        )
+                    else:
+                        _, batch_confidences = model.transcribe(
+                            audio_array=audio_array,
+                            noise_type=cond,
+                            sampling_rate=sr,
+                            max_new_tokens=128,
+                            return_transcriptions=False,
+                        )
+
+                    outputs[cond][audio_name].extend(batch_confidences)
+                    confidence_scores.extend(batch_confidences)
+
+                outputs[cond]["avg confidence"] = (
+                    np.mean(confidence_scores) if confidence_scores else 0.0
                 )
 
-                labels_to_decode = batch["labels"].clone()
-                labels_to_decode[labels_to_decode == -100] = model.processor.tokenizer.pad_token_id
+        noise_names = [str(k) for k in condition_keys]
+        avg_confidences = [outputs[cond]["avg confidence"] for cond in condition_keys]
 
-                decoded_labels = model.processor.tokenizer.batch_decode(
-                    labels_to_decode, skip_special_tokens=True
-                )
-
-                # Align labels with per-sample batch confidences
-                for label, conf in zip(decoded_labels, batch_confidences):
-                    outputs[noise_type]["confidence"][label] = conf
-                    confidence.append(conf)
-
-            outputs[noise_type]["avg confidence"] = np.mean(confidence)
-
-        noise_names = list(outputs.keys())
-        avg_confidences = [outputs[n]["avg confidence"] for n in noise_names]
-
-        fig, ax = plt.subplots(figsize=(12, 8))
-        x_positions = np.arange(len(noise_names))
+        # Bar chart generation
+        fig, ax = plt.subplots(figsize=(14, 8))
+        x_positions = np.arange(len(condition_keys))
         bar_width = 0.5
 
         ax.bar(
             x_positions,
             avg_confidences,
             width=bar_width,
-            color='skyblue',
-            edgecolor='grey'
+            color="skyblue",
+            edgecolor="grey",
         )
 
-        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
-        ax.set_ylabel("Average Confidence", fontweight='bold', fontsize=12)
-        ax.set_title("Model Confidence Across Noise Types", fontweight='bold', fontsize=14)
+        ax.set_xlabel("Condition / Noise Type", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Average Confidence", fontweight="bold", fontsize=12)
+        ax.set_title(
+            "Model Confidence Across Conditions (Lecture Audio)", fontweight="bold", fontsize=14
+        )
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(noise_names, rotation=45, ha="right")
+        ax.set_xticklabels(noise_names, rotation=60, ha="right", fontsize=10)
 
         plt.tight_layout()
-        fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches='tight')
+        fig.savefig("avg_conf_bar_snr.png", dpi=300, bbox_inches="tight")
 
-        fig, ax = plt.subplots(figsize=(12, 8))
+        # Scatter plot generation with different shapes per audio file and color-coded by file start
+        fig, ax = plt.subplots(figsize=(14, 8))
+        markers = ['o', '^', 's', 'D', 'v', 'P', 'X', '*']
 
-        for i, noise in enumerate(noise_names):
-            conf_dict = outputs[noise]["confidence"]
-            scores = list(conf_dict.values())
-            num_samples = len(scores)
+        # 1. Extract unique base names (ignoring Cl/CS and trailing numbers/underscores) for consistent coloring
+        audio_file_list = list(audio_files.keys())
+        base_names = []
+        for audio_name in audio_file_list:
+            base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
+            base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+            if not base:
+                base = audio_name
+            base_names.append(base)
 
-            if num_samples == 0:
-                continue
+        unique_base_names = sorted(list(set(base_names)))
+        colors = plt.get_cmap('tab10', len(unique_base_names) if len(unique_base_names) > 0 else 1)
+        base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
-            # Base x-position for this noise category column (e.g., index 0, 1, 2...)
+        # 2. Build flat records including the audio file name for the CSV export
+        csv_records = []
+        for cond in condition_keys:
+            for audio_name in audio_files.keys():
+                for score in outputs[cond][audio_name]:
+                    csv_records.append({
+                        "audio_file": audio_name,
+                        "condition": str(cond),
+                        "confidence": score
+                    })
+        scores_df = pd.DataFrame(csv_records)
+        scores_df.to_csv("output.csv", index=False)
+
+        for i, cond in enumerate(condition_keys):
             category_x = x_positions[i]
 
-            # Create an x-coordinate array matching the number of scores in this category
-            jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
-            jittered_x = category_x + jitter
+            for audio_idx, audio_name in enumerate(audio_files.keys()):
+                has_cl = any(sub in audio_name for sub in ["Cl", "cl", "CL"])
+                has_cs = any(sub in audio_name for sub in ["CS", "cs", "Cs"])
 
-            ax.scatter(
-                jittered_x,
-                scores,
-                alpha=0.7,
-                edgecolors='black',
-                linewidths=1,
-                label=noise
+                if not has_cl and not has_cs:
+                    continue
+
+                scores = outputs[cond][audio_name]
+                num_samples = len(scores)
+
+                if num_samples == 0:
+                    continue
+
+                jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
+                jittered_x = category_x + jitter
+
+                # 3. Assign shapes: 'o' for Cl variants, '^' for CS variants
+                marker = 'o' if has_cl else '^' if has_cs else markers[-1]
+
+                # 4. Map color based on the base name so matching files share the same color
+                base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
+                base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+                if not base:
+                    base = audio_name
+                file_color = base_color_map[base]
+
+                ax.scatter(
+                    jittered_x,
+                    scores,
+                    color=file_color,
+                    alpha=0.7,
+                    edgecolors="black",
+                    linewidths=1,
+                    marker=marker,
+                    label=audio_name if i == 0 else "",
+                )
+
+        ax.set_xlabel("Condition / Noise Type", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
+        ax.set_title(
+            "Individual Confidences Across Conditions (Lecture Audio)", fontweight="bold", fontsize=14
+        )
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(noise_names, rotation=60, ha="right", fontsize=10)
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = {}
+        for handle, label in zip(handles, labels):
+            if label and label not in by_label and ("Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)):
+                by_label[label] = handle
+
+        if by_label:
+            ax.legend(
+                by_label.values(),
+                by_label.keys(),
+                title="Audio File",
+                loc="upper right",
+                frameon=True,
+                fontsize=8
             )
 
-        ax.set_xlabel("Noise Type", fontweight='bold', fontsize=12)
-        ax.set_ylabel("Confidence", fontweight='bold', fontsize=12)
-        ax.set_title("Individual Confidences Across Noise Types", fontweight='bold', fontsize=14)
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(noise_names, rotation=45, ha="right")
-
         plt.tight_layout()
-        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches='tight')
+        fig.savefig("individual_conf_scatter_snr.png", dpi=300, bbox_inches="tight")
+
     elif what_model == "base":
         french_speech_transcription = French_Speech_text_base()
         output = ""
@@ -183,4 +260,6 @@ def run_model(what_model:str, noise_type, cutoff_freq, snr_db):
     elif what_model == "graph":
         metrics_graph()
     else:
-        raise ValueError(f"{what_model.capitalize()} is not one of the options. Only pick one of these: train, transcribe, or graph.")
+        raise ValueError(
+            f"{what_model.capitalize()} is not one of the options. Only pick one of these: train, transcribe, or graph."
+        )

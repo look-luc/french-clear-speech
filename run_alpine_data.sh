@@ -1,14 +1,15 @@
 #!/bin/bash
+#SBATCH --partition=aa100
+#SBATCH --qos=gpu-testing
 #SBATCH --gres=gpu:1
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=7:30:00
+#SBATCH --time=1:00:00
 #SBATCH --output=/projects/%u/french-clear-speech/logs/%j.log
-#SBATCH --job-name=french_clear_speech
-#SBATCH --partition=blanca-clearlab2
-#SBATCH --account=blanca-clearlab2
-#SBATCH --qos=blanca-clearlab2
+#SBATCH --job-name=topic-space
+#SBATCH --account=ucb-general
 #SBATCH --mail-type=END,FAIL
 
 export HF_TOKEN=$(grep -v '^#' .env | grep 'HUGGINGFACE_TOKEN=' | cut -d '=' -f2-)
@@ -36,11 +37,8 @@ module load anaconda
 
 conda activate french_clear_speech
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+pip uninstall -y torchcodec
 
 cd /projects/$USER/french-clear-speech
 
-MODEL_TYPE=${1:-train}
-NOISE_TYPE=${2:-studio}
-CUTOFF_FREQ=${3:-None}
-SNR_DB=${4:-None}
-python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --cutoff_freq "$CUTOFF_FREQ" --snr_db "$SNR_DB"
+python3 -u testing.py
