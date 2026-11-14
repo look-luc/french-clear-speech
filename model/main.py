@@ -153,7 +153,17 @@ def run_model(what_model: str, noise_type, snr_db):
         colors = plt.get_cmap('tab10', len(unique_base_names) if len(unique_base_names) > 0 else 1)
         base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
-        scores_df = pd.DataFrame(outputs)
+        # 2. Build flat records including the audio file name for the CSV export
+        csv_records = []
+        for cond in condition_keys:
+            for audio_name in audio_files.keys():
+                for score in outputs[cond][audio_name]:
+                    csv_records.append({
+                        "audio_file": audio_name,
+                        "condition": str(cond),
+                        "confidence": score
+                    })
+        scores_df = pd.DataFrame(csv_records)
         scores_df.to_csv("output.csv", index=False)
 
         for i, cond in enumerate(condition_keys):
@@ -175,10 +185,10 @@ def run_model(what_model: str, noise_type, snr_db):
                 jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
                 jittered_x = category_x + jitter
 
-                # 2. Assign shapes: 'o' for Cl variants, '^' for CS variants
+                # 3. Assign shapes: 'o' for Cl variants, '^' for CS variants
                 marker = 'o' if has_cl else '^' if has_cs else markers[-1]
 
-                # 3. Map color based on the base name so matching files share the same color
+                # 4. Map color based on the base name so matching files share the same color
                 base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
                 base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
                 if not base:
