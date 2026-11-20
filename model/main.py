@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 from dotenv import load_dotenv
 
+from .get_data.get_data import get_audio_files
 from .graph_metric.graph import metrics_graph
 from .transcription_model.base_model import French_Speech_text_base
 from .transcription_model.model import French_Speech_text
@@ -21,41 +22,17 @@ hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 script_dir = Path(__file__).resolve().parent
 
+
 def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
         outputs = {}
-        model = qwen()
-
-        # Define the directory containing your local lecture audio files
-        lecture_dir = script_dir.parent / "data" / "lecture"
-        audio_extensions = [".wav", ".mp3", ".m4a", ".flac"]
-
-        audio_files = {}
-        if lecture_dir.exists():
-            for audio_path in lecture_dir.iterdir():
-                if audio_path.suffix.lower() in audio_extensions:
-                    audio_name = audio_path.stem
-                    audio_files[audio_name] = audio_path
-
-        if not audio_files:
-            print(f"Warning: No audio files found in {lecture_dir}")
+        model = experiment_model()
+        audio_files = get_audio_files()
 
         noise_types = [
-            "relay",
-            "shortwave_relay",
-            "whisper_in_the_rain",
             "broadcast",
-            "high_end_studio",
-            "studio",
-            "quiet_home",
-            "library",
-            "mild_office",
-            "moderate_cafe",
-            "severe_street",
-            "extreme_cocktail"
         ]
-        snr_targets = [-2.5, -7.5]
-        condition_keys = list(snr_targets) + noise_types
+        condition_keys = noise_types
         with torch.inference_mode():
             for cond in condition_keys:
                 is_snr = isinstance(cond, (int, float))
@@ -132,20 +109,29 @@ def run_model(what_model: str, noise_type, snr_db):
 
         # Scatter plot generation with different shapes per audio file and color-coded by file start
         fig, ax = plt.subplots(figsize=(14, 8))
-        markers = ['o', '^', 's', 'D', 'v', 'P', 'X', '*']
+        markers = ["o", "^", "s", "D", "v", "P", "X", "*"]
 
         # 1. Extract unique base names (ignoring Cl/CS and trailing numbers/underscores) for consistent coloring
         audio_file_list = list(audio_files.keys())
         base_names = []
         for audio_name in audio_file_list:
-            base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
-            base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+            base = (
+                audio_name.replace("tache01", "")
+                .replace("tache02", "")
+            )
+            base = (
+                base.replace("tache01", "")
+                .replace("tache02", "")
+                .rstrip("_")
+            )
             if not base:
                 base = audio_name
             base_names.append(base)
 
         unique_base_names = sorted(list(set(base_names)))
-        colors = plt.get_cmap('tab10', len(unique_base_names) if len(unique_base_names) > 0 else 1)
+        colors = plt.get_cmap(
+            "tab10", len(unique_base_names) if len(unique_base_names) > 0 else 1
+        )
         base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
         # 2. Build flat records including the audio file name for the CSV export
@@ -153,11 +139,13 @@ def run_model(what_model: str, noise_type, snr_db):
         for cond in condition_keys:
             for audio_name in audio_files.keys():
                 for score in outputs[cond][audio_name]:
-                    csv_records.append({
-                        "audio_file": audio_name,
-                        "condition": str(cond),
-                        "confidence": score
-                    })
+                    csv_records.append(
+                        {
+                            "audio_file": audio_name,
+                            "condition": str(cond),
+                            "confidence": score,
+                        }
+                    )
         scores_df = pd.DataFrame(csv_records)
         scores_df.to_csv("output.csv", index=False)
 
@@ -165,8 +153,8 @@ def run_model(what_model: str, noise_type, snr_db):
             category_x = x_positions[i]
 
             for audio_idx, audio_name in enumerate(audio_files.keys()):
-                has_cl = any(sub in audio_name for sub in ["Cl", "cl", "CL"])
-                has_cs = any(sub in audio_name for sub in ["CS", "cs", "Cs"])
+                has_cl = any(sub in audio_name for sub in ["tach01", "tache01"])
+                has_cs = any(sub in audio_name for sub in ["tach02", "tache02"])
 
                 if not has_cl and not has_cs:
                     continue
@@ -181,11 +169,26 @@ def run_model(what_model: str, noise_type, snr_db):
                 jittered_x = category_x + jitter
 
                 # 3. Assign shapes: 'o' for Cl variants, '^' for CS variants
-                marker = 'o' if has_cl else '^' if has_cs else markers[-1]
+                marker = "o" if has_cl else "^" if has_cs else markers[-1]
 
                 # 4. Map color based on the base name so matching files share the same color
-                base = audio_name.replace("lectureCl", "").replace("lectureCS", "").replace("lecturecl", "").replace("lecturecs", "").replace("lectureCL", "").replace("lectureCs", "")
-                base = base.replace("Cl", "").replace("CS", "").replace("cl", "").replace("cs", "").replace("CL", "").replace("Cs", "").rstrip("_")
+                base = (
+                    audio_name.replace("tache01", "")
+                    .replace("tache01", "")
+                    .replace("tache01", "")
+                    .replace("tache01", "")
+                    .replace("tache01", "")
+                    .replace("tache01", "")
+                )
+                base = (
+                    base.replace("Cl", "")
+                    .replace("CS", "")
+                    .replace("cl", "")
+                    .replace("cs", "")
+                    .replace("CL", "")
+                    .replace("Cs", "")
+                    .rstrip("_")
+                )
                 if not base:
                     base = audio_name
                 file_color = base_color_map[base]
@@ -212,7 +215,9 @@ def run_model(what_model: str, noise_type, snr_db):
         handles, labels = ax.get_legend_handles_labels()
         by_label = {}
         for handle, label in zip(handles, labels):
-            if label and label not in by_label and ("Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)):
+            if label and label not in by_label and (
+                "Cl" in label or "CS" in label or not ("Cl" in label or "CS" in label)
+            ):
                 by_label[label] = handle
 
         if by_label:
@@ -222,7 +227,7 @@ def run_model(what_model: str, noise_type, snr_db):
                 title="Audio File",
                 loc="upper right",
                 frameon=True,
-                fontsize=8
+                fontsize=8,
             )
 
         plt.tight_layout()

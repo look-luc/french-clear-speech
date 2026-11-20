@@ -187,7 +187,7 @@ class French_Clear_Speech_Model:
         self,
         is_fine_tuned: bool = False,
     ) -> None:
-        self.model_id = "bofenghuang/whisper-medium-french",
+        self.model_id = "bofenghuang/whisper-medium-french"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.dtype = torch.float16 if self.device == "cuda" else torch.float32
         self.path_to_model = f"{script_path}/whisper-french-experiment"

@@ -31,10 +31,9 @@ export TRANSFORMERS_CACHE="$SCRATCH/.cache/transformers"
 mkdir -p "$HF_HOME" "$EVALUATE_CACHE_DIR" "$TRANSFORMERS_CACHE"
 
 module purge
-module load cuda
-module load anaconda
 
-conda activate french_clear_speech
+# 1. Properly initialize conda for non-interactive Slurm shell
+
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 cd /projects/$USER/french-clear-speech
@@ -42,4 +41,8 @@ cd /projects/$USER/french-clear-speech
 MODEL_TYPE=${1:-train}
 NOISE_TYPE=${2:-studio}
 SNR_DB=${4:-None}
-python3 -u run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --snr_db "$SNR_DB"
+
+module load uv
+uv sync
+
+uv run run.py --model_type "$MODEL_TYPE" --noise_type "$NOISE_TYPE" --snr_db "$SNR_DB"
