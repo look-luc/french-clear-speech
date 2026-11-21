@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import librosa
@@ -23,18 +24,33 @@ hf_token = os.getenv("HUGGINGFACE_TOKEN")
 script_dir = Path(__file__).resolve().parent
 
 
+def _preload_audio_16k(audio_files: dict[str, str]) -> dict[str, np.ndarray]:
+    preloaded: dict[str, np.ndarray] = {}
+    for audio_name, audio_path in audio_files.items():
+        audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
+        if sr != 16000:
+            audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
+        preloaded[audio_name] = np.asarray(audio_array, dtype=np.float32)
+    return preloaded
+
+
 def run_model(what_model: str, noise_type, snr_db):
     if what_model == "experiment":
+        run_start = time.perf_counter()
         outputs = {}
         model = experiment_model()
         audio_files = get_audio_files()
+        preloaded_audio = _preload_audio_16k(audio_files)
 
         noise_types = [
             "broadcast",
         ]
         condition_keys = noise_types
+        csv_path = Path("output.csv")
+
         with torch.inference_mode():
-            for cond in condition_keys:
+            for idx, cond in enumerate(condition_keys):
+                cond_start = time.perf_counter()
                 is_snr = isinstance(cond, (int, float))
                 print("\n")
                 print("|" + "=" * (len(str(cond)) + len("condition: ")) + "|")
@@ -45,22 +61,17 @@ def run_model(what_model: str, noise_type, snr_db):
                 outputs[cond] = {
                     "avg confidence": 0.0,
                 }
-                for audio_name in audio_files.keys():
+                for audio_name in preloaded_audio.keys():
                     outputs[cond][audio_name] = []
 
-                for audio_name, audio_path in audio_files.items():
-                    audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
-
-                    if sr != 16000:
-                        audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
-                        sr = 16000
-
+                cond_records = []
+                for audio_name, audio_array in preloaded_audio.items():
                     if is_snr:
                         _, batch_confidences = model.transcribe(
                             audio_array=audio_array,
                             noise_type=None,
                             snr_db=cond,
-                            sampling_rate=sr,
+                            sampling_rate=16000,
                             max_new_tokens=128,
                             return_transcriptions=False,
                         )
@@ -68,16 +79,38 @@ def run_model(what_model: str, noise_type, snr_db):
                         _, batch_confidences = model.transcribe(
                             audio_array=audio_array,
                             noise_type=cond,
-                            sampling_rate=sr,
+                            sampling_rate=16000,
                             max_new_tokens=128,
                             return_transcriptions=False,
                         )
 
                     outputs[cond][audio_name].extend(batch_confidences)
                     confidence_scores.extend(batch_confidences)
+                    for score in batch_confidences:
+                        cond_records.append(
+                            {
+                                "audio_file": audio_name,
+                                "condition": str(cond),
+                                "confidence": score,
+                            }
+                        )
 
                 outputs[cond]["avg confidence"] = (
-                    np.mean(confidence_scores) if confidence_scores else 0.0
+                    float(np.mean(confidence_scores)) if confidence_scores else 0.0
+                )
+
+                # Checkpoint each condition immediately to CSV
+                cond_df = pd.DataFrame(cond_records)
+                write_header = not csv_path.exists()
+                cond_df.to_csv(csv_path, mode="a", header=write_header, index=False)
+
+                cond_elapsed = time.perf_counter() - cond_start
+                total_elapsed = time.perf_counter() - run_start
+                remaining_conds = len(condition_keys) - (idx + 1)
+                eta_seconds = cond_elapsed * remaining_conds
+                print(
+                    f"[Timing] cond={cond} took {cond_elapsed:.1f}s | "
+                    f"elapsed={total_elapsed/60:.1f}m | est_remaining={eta_seconds/60:.1f}m"
                 )
 
         noise_names = [str(k) for k in condition_keys]
@@ -112,7 +145,7 @@ def run_model(what_model: str, noise_type, snr_db):
         markers = ["o", "^", "s", "D", "v", "P", "X", "*"]
 
         # 1. Extract unique base names (ignoring Cl/CS and trailing numbers/underscores) for consistent coloring
-        audio_file_list = list(audio_files.keys())
+        audio_file_list = list(preloaded_audio.keys())
         base_names = []
         for audio_name in audio_file_list:
             base = (
@@ -134,25 +167,10 @@ def run_model(what_model: str, noise_type, snr_db):
         )
         base_color_map = {base: colors(i) for i, base in enumerate(unique_base_names)}
 
-        # 2. Build flat records including the audio file name for the CSV export
-        csv_records = []
-        for cond in condition_keys:
-            for audio_name in audio_files.keys():
-                for score in outputs[cond][audio_name]:
-                    csv_records.append(
-                        {
-                            "audio_file": audio_name,
-                            "condition": str(cond),
-                            "confidence": score,
-                        }
-                    )
-        scores_df = pd.DataFrame(csv_records)
-        scores_df.to_csv("output.csv", index=False)
-
         for i, cond in enumerate(condition_keys):
             category_x = x_positions[i]
 
-            for audio_idx, audio_name in enumerate(audio_files.keys()):
+            for audio_idx, audio_name in enumerate(preloaded_audio.keys()):
                 has_cl = any(sub in audio_name for sub in ["tach01", "tache01"])
                 has_cs = any(sub in audio_name for sub in ["tach02", "tache02"])
 

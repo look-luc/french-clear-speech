@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 from typing import cast
 
@@ -16,7 +15,7 @@ hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 
 def resolve_repo_dir(repo_id: str = "lookitsluc1/french_cleer_speech") -> Path:
-    repo_dir = Path(
+    return Path(
         snapshot_download(
             repo_id,
             repo_type="dataset",
@@ -24,16 +23,6 @@ def resolve_repo_dir(repo_id: str = "lookitsluc1/french_cleer_speech") -> Path:
             token=hf_token,
         )
     )
-    return repo_dir
-
-
-def _extract_audio_field(row: dict) -> dict | None:
-    if isinstance(row.get("audio"), dict):
-        return row["audio"]
-    for value in row.values():
-        if isinstance(value, dict) and ("array" in value or "path" in value):
-            return value
-    return None
 
 
 def get_audio_files(
@@ -41,33 +30,22 @@ def get_audio_files(
     split: str = "train",
 ) -> dict[str, str]:
     ds = load_dataset(repo_id, split=split, token=hf_token)
-    cache_dir = Path(tempfile.gettempdir()) / f"hf_audio_{repo_id.replace('/', '_')}_{split}"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    repo_dir = resolve_repo_dir(repo_id=repo_id)
 
     audio_files: dict[str, str] = {}
-    for idx, row in enumerate(ds):
-        raw_name = str(row.get("file_name") or row.get("id") or f"sample_{idx}").strip()
-        audio_key = Path(raw_name).stem or f"sample_{idx}"
-
-        audio_info = _extract_audio_field(row)
-        if audio_info is None:
+    for row in ds:
+        raw_name = str(row.get("file_name", "")).strip()
+        if not raw_name:
             continue
 
-        candidate_path = audio_info.get("path")
-        if candidate_path and Path(candidate_path).exists():
-            audio_files[audio_key] = str(candidate_path)
-            continue
-
-        array = audio_info.get("array")
-        sr = audio_info.get("sampling_rate", 16000)
-        if array is not None:
-            out_wav = cache_dir / f"{audio_key}.wav"
-            sf.write(out_wav, np.asarray(array, dtype=np.float32), int(sr))
-            audio_files[audio_key] = str(out_wav)
+        candidate = repo_dir / raw_name
+        if candidate.exists():
+            audio_key = Path(raw_name).stem
+            audio_files[audio_key] = str(candidate)
 
     if not audio_files:
-        raise RuntimeError(
-            f"Could not extract any audio files from {repo_id} (split={split}). "
+        raise FileNotFoundError(
+            f"No existing audio files found in snapshot {repo_dir} for {repo_id} (split={split}). "
             f"Available columns: {ds.column_names}"
         )
 
