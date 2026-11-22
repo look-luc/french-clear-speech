@@ -1,11 +1,13 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.signal
+import soundfile as sf
 import torch
 from dotenv import load_dotenv
 
@@ -24,23 +26,35 @@ hf_token = os.getenv("HUGGINGFACE_TOKEN")
 script_dir = Path(__file__).resolve().parent
 
 
-def _preload_audio_16k(audio_files: dict[str, str]) -> dict[str, np.ndarray]:
+def _load_single_audio_16k(item: tuple[str, str]) -> tuple[str, np.ndarray]:
+    audio_name, audio_path = item
+    array, sr = sf.read(audio_path, always_2d=False)
+    if array.ndim > 1:
+        array = np.mean(array, axis=-1)
+    if sr != 16000:
+        array = scipy.signal.resample_poly(array, 16000, sr)
+    return audio_name, np.asarray(array, dtype=np.float32)
+
+
+def _preload_audio_16k(
+    audio_files: dict[str, str], max_workers: int = 8
+) -> dict[str, np.ndarray]:
+    items = list(audio_files.items())
     preloaded: dict[str, np.ndarray] = {}
-    for audio_name, audio_path in audio_files.items():
-        audio_array, sr = librosa.load(audio_path, sr=None, mono=True)
-        if sr != 16000:
-            audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
-        preloaded[audio_name] = np.asarray(audio_array, dtype=np.float32)
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        for audio_name, audio_array in pool.map(_load_single_audio_16k, items):
+            preloaded[audio_name] = audio_array
     return preloaded
 
 
-def run_model(what_model: str, noise_type, snr_db):
+def run_model(what_model: str, noise_type, snr_db, batch_size: int = 32):
     if what_model == "experiment":
         run_start = time.perf_counter()
         outputs = {}
-        model = experiment_model()
+        model = experiment_model(use_compile=False)
         audio_files = get_audio_files()
-        preloaded_audio = _preload_audio_16k(audio_files)
+        preloaded_audio = _preload_audio_16k(audio_files, max_workers=8)
+        audio_items = list(preloaded_audio.items())
 
         noise_types = [
             "broadcast",
@@ -65,28 +79,34 @@ def run_model(what_model: str, noise_type, snr_db):
                     outputs[cond][audio_name] = []
 
                 cond_records = []
-                for audio_name, audio_array in preloaded_audio.items():
+                for start_idx in range(0, len(audio_items), batch_size):
+                    batch = audio_items[start_idx : start_idx + batch_size]
+                    batch_names = [name for name, _ in batch]
+                    batch_arrays = [arr for _, arr in batch]
+
                     if is_snr:
                         _, batch_confidences = model.transcribe(
-                            audio_array=audio_array,
+                            audio_array=batch_arrays,
                             noise_type=None,
                             snr_db=cond,
                             sampling_rate=16000,
                             max_new_tokens=128,
                             return_transcriptions=False,
+                            num_beams=1,
                         )
                     else:
                         _, batch_confidences = model.transcribe(
-                            audio_array=audio_array,
+                            audio_array=batch_arrays,
                             noise_type=cond,
                             sampling_rate=16000,
                             max_new_tokens=128,
                             return_transcriptions=False,
+                            num_beams=1,
                         )
 
-                    outputs[cond][audio_name].extend(batch_confidences)
-                    confidence_scores.extend(batch_confidences)
-                    for score in batch_confidences:
+                    for audio_name, score in zip(batch_names, batch_confidences):
+                        outputs[cond][audio_name].append(score)
+                        confidence_scores.append(score)
                         cond_records.append(
                             {
                                 "audio_file": audio_name,
@@ -144,19 +164,11 @@ def run_model(what_model: str, noise_type, snr_db):
         fig, ax = plt.subplots(figsize=(14, 8))
         markers = ["o", "^", "s", "D", "v", "P", "X", "*"]
 
-        # 1. Extract unique base names (ignoring Cl/CS and trailing numbers/underscores) for consistent coloring
         audio_file_list = list(preloaded_audio.keys())
         base_names = []
         for audio_name in audio_file_list:
-            base = (
-                audio_name.replace("tache01", "")
-                .replace("tache02", "")
-            )
-            base = (
-                base.replace("tache01", "")
-                .replace("tache02", "")
-                .rstrip("_")
-            )
+            base = audio_name.replace("tache01", "").replace("tache02", "")
+            base = base.replace("tache01", "").replace("tache02", "").rstrip("_")
             if not base:
                 base = audio_name
             base_names.append(base)
@@ -186,10 +198,8 @@ def run_model(what_model: str, noise_type, snr_db):
                 jitter = np.random.uniform(low=-0.15, high=0.15, size=num_samples)
                 jittered_x = category_x + jitter
 
-                # 3. Assign shapes: 'o' for Cl variants, '^' for CS variants
                 marker = "o" if has_cl else "^" if has_cs else markers[-1]
 
-                # 4. Map color based on the base name so matching files share the same color
                 base = (
                     audio_name.replace("tache01", "")
                     .replace("tache01", "")

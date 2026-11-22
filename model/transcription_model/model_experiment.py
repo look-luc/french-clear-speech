@@ -3,8 +3,6 @@ import re
 from pathlib import Path
 
 import evaluate
-
-# import librosa
 import numpy as np
 import torch
 from dotenv import load_dotenv
@@ -24,6 +22,7 @@ script_path = Path(__file__).resolve().parent
 cer_metric = evaluate.load("cer")
 wer_metric = evaluate.load("wer")
 
+
 class Qwen_clear_speech_model:
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -37,15 +36,13 @@ class Qwen_clear_speech_model:
         self.model = AutoModelForMultimodalLM.from_pretrained(
             self.model_id,
             device_map=self.device,
-            torch_dtype=self.dtype
+            torch_dtype=self.dtype,
         )
 
         if self.device == "cuda":
             torch.set_float32_matmul_precision("high")
 
-    def _get_noise_params(
-        self, noise_type: str | None
-    ) -> float | int | None:
+    def _get_noise_params(self, noise_type: str | None) -> float | int | None:
         if noise_type is None:
             return None
 
@@ -145,7 +142,6 @@ class Qwen_clear_speech_model:
             return_attention_mask=True,
         )
 
-        # Ensure input_features match self.dtype (bfloat16 or float16)
         input_features = inputs["input_features"].to(device=self.device, dtype=self.dtype)
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
@@ -157,7 +153,7 @@ class Qwen_clear_speech_model:
         inputs = inputs.to(self.device)
         inputs["input_features"] = degraded_features
 
-        use_beam_search = (temp == 0.0)
+        use_beam_search = temp == 0.0
 
         output_ids = self.model.generate(
             **inputs,
@@ -170,22 +166,28 @@ class Qwen_clear_speech_model:
             temperature=temp,
         )
 
-        generated_ids = output_ids.sequences[:, inputs["input_ids"].shape[1]:]
+        generated_ids = output_ids.sequences[:, inputs["input_ids"].shape[1] :]
         if return_transcriptions:
-            transcription = self.processor.decode(generated_ids, return_format="transcription_only")[0]
+            transcription = self.processor.decode(
+                generated_ids, return_format="transcription_only"
+            )[0]
         else:
             transcription = self.processor.decode(generated_ids, return_format="parsed")[0]
 
         if use_beam_search and getattr(output_ids, "sequences_scores", None) is not None:
             conf_scores = torch.exp(output_ids.sequences_scores).tolist()
         else:
-            conf_scores = [1.0] * len(transcription) if isinstance(transcription, list) else [1.0]
+            conf_scores = (
+                [1.0] * len(transcription) if isinstance(transcription, list) else [1.0]
+            )
         return transcription, conf_scores
+
 
 class French_Clear_Speech_Model:
     def __init__(
         self,
         is_fine_tuned: bool = False,
+        use_compile: bool = False,
     ) -> None:
         self.model_id = "bofenghuang/whisper-medium-french"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -198,6 +200,9 @@ class French_Clear_Speech_Model:
         self.processor, self.feature_extractor, self.model = self._setup(
             is_fine_tuned=is_fine_tuned
         )
+
+        if use_compile and self.device == "cuda":
+            self.model.forward = torch.compile(self.model.forward, mode="reduce-overhead")
 
     def _setup(self, is_fine_tuned: bool = False):
         processor = AutoProcessor.from_pretrained(
@@ -216,9 +221,13 @@ class French_Clear_Speech_Model:
             token=hf_token,
         ).to(self.device)
 
-        model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="fr", task="transcribe")
+        model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(
+            language="fr", task="transcribe"
+        )
         model.generation_config.use_timestamps = False
-        model.generation_config.no_timestamps_token_id = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
+        model.generation_config.no_timestamps_token_id = (
+            processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
+        )
         model.generation_config.max_length = None
 
         if is_fine_tuned:
@@ -229,9 +238,7 @@ class French_Clear_Speech_Model:
         else:
             return processor, feature_extractor, model
 
-    def _get_noise_params(
-        self, noise_type: str | None
-    ) -> float | int | None:
+    def _get_noise_params(self, noise_type: str | None) -> float | int | None:
         if noise_type is None:
             return None
 
@@ -304,35 +311,89 @@ class French_Clear_Speech_Model:
 
         return degraded
 
+    def _compute_batch_confidence(
+        self, output_ids, batch_size: int, num_beams: int
+    ) -> list[float]:
+        if num_beams > 1 and getattr(output_ids, "sequences_scores", None) is not None:
+            return torch.exp(output_ids.sequences_scores).float().cpu().tolist()
+
+        if getattr(output_ids, "scores", None):
+            transition_scores = self.model.compute_transition_scores(
+                output_ids.sequences,
+                output_ids.scores,
+                normalize_logits=True,
+            )
+            pad_id = self.processor.tokenizer.pad_token_id
+            eos_id = self.processor.tokenizer.eos_token_id
+
+            conf_scores: list[float] = []
+            for row_idx in range(transition_scores.shape[0]):
+                row_scores = transition_scores[row_idx]
+                # Exclude padded or infinite positions
+                valid_mask = torch.isfinite(row_scores)
+                if pad_id is not None and output_ids.sequences.shape[1] > 1:
+                    gen_tokens = output_ids.sequences[row_idx, 1:]
+                    if gen_tokens.shape[0] == row_scores.shape[0]:
+                        valid_mask = valid_mask & (gen_tokens != pad_id)
+                        if eos_id is not None:
+                            valid_mask = valid_mask & (gen_tokens != eos_id)
+
+                if valid_mask.any():
+                    mean_log_prob = row_scores[valid_mask].mean()
+                    conf_scores.append(float(torch.exp(mean_log_prob).item()))
+                else:
+                    conf_scores.append(0.0)
+            return conf_scores
+
+        return [1.0] * batch_size
+
     @torch.inference_mode()
     def transcribe(
         self,
-        audio_array: torch.Tensor | np.ndarray,
+        audio_array: torch.Tensor | np.ndarray | list[np.ndarray],
         noise_type: str | None = "studio",
         snr_db: int | float | None = None,
         sampling_rate: int = 16000,
         temp: float = 0.0,
         max_new_tokens: int = 128,
         return_transcriptions: bool = True,
+        num_beams: int = 1,
     ):
-        if isinstance(audio_array, torch.Tensor):
-            audio_array = audio_array.detach().cpu().numpy()
-
-        if isinstance(audio_array, np.ndarray) and audio_array.ndim > 1:
-            if audio_array.shape[0] < audio_array.shape[1]:
-                audio_array = np.mean(audio_array, axis=0)
-            else:
-                audio_array = np.mean(audio_array, axis=1)
+        is_batched_list = isinstance(audio_array, list)
+        if is_batched_list:
+            audio_inputs = []
+            for arr in audio_array:
+                if isinstance(arr, torch.Tensor):
+                    arr = arr.detach().cpu().numpy()
+                if isinstance(arr, np.ndarray) and arr.ndim > 1:
+                    arr = np.mean(arr, axis=0 if arr.shape[0] < arr.shape[1] else 1)
+                audio_inputs.append(np.asarray(arr, dtype=np.float32))
+            batch_size = len(audio_inputs)
+        else:
+            if isinstance(audio_array, torch.Tensor):
+                audio_array = audio_array.detach().cpu().numpy()
+            if isinstance(audio_array, np.ndarray) and audio_array.ndim > 1:
+                audio_array = np.mean(
+                    audio_array,
+                    axis=0 if audio_array.shape[0] < audio_array.shape[1] else 1,
+                )
+            audio_inputs = np.asarray(audio_array, dtype=np.float32)
+            batch_size = 1
 
         inputs = self.processor(
-            audio_array,
+            audio_inputs,
             sampling_rate=sampling_rate,
             return_tensors="pt",
             return_attention_mask=True,
+            padding=is_batched_list,
         )
 
         input_features = inputs.input_features.to(device=self.device, dtype=self.dtype)
-        attention_mask = inputs.attention_mask.to(device=self.device) if "attention_mask" in inputs else None
+        attention_mask = (
+            inputs.attention_mask.to(device=self.device)
+            if "attention_mask" in inputs
+            else None
+        )
 
         degraded_features = self._apply_acoustic_degradation(
             input_features=input_features,
@@ -340,12 +401,13 @@ class French_Clear_Speech_Model:
             snr_db=snr_db,
             sampling_rate=sampling_rate,
         )
-        use_beam_search = (temp == 0.0)
+
+        effective_beams = num_beams if temp == 0.0 else 1
         output_ids = self.model.generate(
             input_features=degraded_features,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
-            num_beams=5 if use_beam_search else 1,
+            num_beams=effective_beams,
             num_return_sequences=1,
             output_scores=True,
             return_dict_in_generate=True,
@@ -353,7 +415,7 @@ class French_Clear_Speech_Model:
             temperature=temp,
         )
 
-        clean_transcriptions = []
+        clean_transcriptions: list[str] = []
         if return_transcriptions:
             transcription_list = self.processor.batch_decode(
                 output_ids.sequences,
@@ -364,8 +426,9 @@ class French_Clear_Speech_Model:
                 for t in transcription_list
             ]
 
-        if use_beam_search and getattr(output_ids, "sequences_scores", None) is not None:
-            conf_scores = torch.exp(output_ids.sequences_scores).tolist()
-        else:
-            conf_scores = [1.0] * len(clean_transcriptions)
+        conf_scores = self._compute_batch_confidence(
+            output_ids=output_ids,
+            batch_size=batch_size,
+            num_beams=effective_beams,
+        )
         return clean_transcriptions, conf_scores
