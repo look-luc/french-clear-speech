@@ -47,7 +47,7 @@ def _preload_audio_16k(
     return preloaded
 
 
-def run_model(what_model: str, noise_type, snr_db, batch_size: int = 32):
+def run_model(what_model: str, noise_type, snr_db, batch_size: int = 64):
     if what_model == "experiment":
         run_start = time.perf_counter()
         outputs = {}
