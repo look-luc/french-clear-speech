@@ -26,6 +26,14 @@ hf_token = os.getenv("HUGGINGFACE_TOKEN")
 script_dir = Path(__file__).resolve().parent
 
 
+def _normalize_base_name(audio_name: str) -> str:
+    base = audio_name.replace("tache01", "").replace("tache02", "")
+    for token in ("Cl", "CS", "cl", "cs", "CL", "Cs"):
+        base = base.replace(token, "")
+    base = base.rstrip("_")
+    return base if base else audio_name
+
+
 def _load_single_audio_16k(item: tuple[str, str]) -> tuple[str, np.ndarray]:
     audio_name, audio_path = item
     array, sr = sf.read(audio_path, always_2d=False)
@@ -165,15 +173,9 @@ def run_model(what_model: str, noise_type, snr_db, batch_size: int = 64):
         markers = ["o", "^", "s", "D", "v", "P", "X", "*"]
 
         audio_file_list = list(preloaded_audio.keys())
-        base_names = []
-        for audio_name in audio_file_list:
-            base = audio_name.replace("tache01", "").replace("tache02", "")
-            base = base.replace("tache01", "").replace("tache02", "").rstrip("_")
-            if not base:
-                base = audio_name
-            base_names.append(base)
+        base_names = [_normalize_base_name(audio_name) for audio_name in audio_file_list]
 
-        unique_base_names = sorted(list(set(base_names)))
+        unique_base_names = sorted(set(base_names))
         colors = plt.get_cmap(
             "tab10", len(unique_base_names) if len(unique_base_names) > 0 else 1
         )
@@ -199,27 +201,8 @@ def run_model(what_model: str, noise_type, snr_db, batch_size: int = 64):
                 jittered_x = category_x + jitter
 
                 marker = "o" if has_cl else "^" if has_cs else markers[-1]
-
-                base = (
-                    audio_name.replace("tache01", "")
-                    .replace("tache01", "")
-                    .replace("tache01", "")
-                    .replace("tache01", "")
-                    .replace("tache01", "")
-                    .replace("tache01", "")
-                )
-                base = (
-                    base.replace("Cl", "")
-                    .replace("CS", "")
-                    .replace("cl", "")
-                    .replace("cs", "")
-                    .replace("CL", "")
-                    .replace("Cs", "")
-                    .rstrip("_")
-                )
-                if not base:
-                    base = audio_name
-                file_color = base_color_map[base]
+                base = _normalize_base_name(audio_name)
+                file_color = base_color_map.get(base, colors(0))
 
                 ax.scatter(
                     jittered_x,
