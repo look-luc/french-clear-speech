@@ -4,6 +4,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -25,6 +28,7 @@ load_dotenv()
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 script_dir = Path(__file__).resolve().parent
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 
 def _normalize_base_name(audio_name: str) -> str:
@@ -66,10 +70,21 @@ def _save_figure_safely(fig: plt.Figure, target_path: Path, dpi: int = 300) -> N
   os.close(tmp_fd)
   tmp_path = Path(tmp_name)
   try:
-    fig.savefig(tmp_path, format="png", dpi=dpi, bbox_inches="tight")
-    if not tmp_path.exists() or tmp_path.stat().st_size == 0:
-      raise RuntimeError(f"Saved figure at {tmp_path} is empty.")
+    fig.canvas.draw()
+    fig.savefig(tmp_path, format="png", dpi=dpi)
+    if not tmp_path.exists() or tmp_path.stat().st_size < len(PNG_MAGIC):
+      raise RuntimeError(f"Saved figure at {tmp_path} is empty or truncated.")
+    with open(tmp_path, "rb") as f:
+      header = f.read(len(PNG_MAGIC))
+    if header != PNG_MAGIC:
+      raise RuntimeError(
+          f"Saved file at {tmp_path} does not have a valid PNG header: {header!r}"
+      )
     os.replace(tmp_path, target_path)
+    print(f"[Plot OK] Wrote valid PNG to {target_path} ({target_path.stat().st_size} bytes)")
+  except Exception as exc:
+    print(f"[Plot ERROR] Failed to save {target_path}: {type(exc).__name__}: {exc}")
+    raise
   finally:
     plt.close(fig)
     if tmp_path.exists():
@@ -127,6 +142,7 @@ def _plot_scatter_chart(
   )
   base_color_map = {base: cmap(i) for i, base in enumerate(unique_base_names)}
 
+  plotted_points = 0
   for i, cond in enumerate(condition_keys):
     category_x = x_positions[i]
 
@@ -159,6 +175,9 @@ def _plot_scatter_chart(
           marker=marker,
           label=audio_name if i == 0 else "",
       )
+      plotted_points += num_samples
+
+  print(f"[Plot Info] Scatter plotted {plotted_points} points across {len(condition_keys)} conditions.")
 
   ax.set_xlabel("Condition / Noise Type", fontweight="bold", fontsize=12)
   ax.set_ylabel("Confidence", fontweight="bold", fontsize=12)
@@ -259,7 +278,6 @@ def run_model(what_model: str, noise_type, snr_db, batch_size: int = 64):
             float(np.mean(confidence_scores)) if confidence_scores else 0.0
         )
 
-        # Checkpoint each condition immediately to CSV
         cond_df = pd.DataFrame(cond_records)
         write_header = not csv_path.exists()
         cond_df.to_csv(csv_path, mode="a", header=write_header, index=False)
